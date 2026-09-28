@@ -75,8 +75,16 @@ export async function setRoundPhase(formData) {
   const { supabase } = await requireAdmin();
   const roundId = String(formData.get('roundId'));
   const phase = String(formData.get('phase'));
-  if (!['setup', 'scoring'].includes(phase)) return;
+  const allowed = {
+    setup: ['scoring'],
+    scoring: ['setup', 'voting'],
+    voting: ['scoring', 'closed'],
+    closed: ['voting'],
+  };
+  const { data: round } = await supabase.from('rounds').select('phase').eq('id', roundId).maybeSingle();
+  if (!round || !allowed[round.phase]?.includes(phase)) return;
   await supabase.from('rounds').update({ phase }).eq('id', roundId);
+  revalidatePath(`/rounds/${roundId}`);
   revalidatePath('/admin');
   revalidatePath('/');
 }
@@ -86,6 +94,7 @@ export async function distributeReviewers(_prev, formData) {
   const roundId = String(formData.get('roundId'));
   const memberIds = formData.getAll('memberIds').map(String);
   const perApplicant = Math.max(1, parseInt(formData.get('perApplicant'), 10) || 1);
+  const onlyNew = formData.get('mode') === 'new';
 
   if (memberIds.length === 0) return { error: 'Select at least one member.' };
 
@@ -95,10 +104,20 @@ export async function distributeReviewers(_prev, formData) {
     .eq('round_id', roundId);
   if (readError) return { error: `Couldn't read applicants: ${readError.message}` };
 
-  const applicantIds = (inRound || [])
+  let applicantIds = (inRound || [])
     .filter((r) => r.applicants?.status === 'active')
     .map((r) => r.applicant_id);
   if (applicantIds.length === 0) return { error: 'This round has no active applicants to assign.' };
+
+  // "Assign new applicants only": keep current assignments, fill in anyone without a reviewer
+  let initialLoad = {};
+  if (onlyNew) {
+    const { data: existing } = await supabase.from('assignments').select('applicant_id, member_id').eq('round_id', roundId);
+    const covered = new Set((existing || []).map((a) => a.applicant_id));
+    (existing || []).forEach((a) => (initialLoad[a.member_id] = (initialLoad[a.member_id] || 0) + 1));
+    applicantIds = applicantIds.filter((id) => !covered.has(id));
+    if (applicantIds.length === 0) return { ok: 'Every applicant in this round already has a reviewer. Nothing to add.' };
+  }
 
   const { data: conflictRows } = await supabase
     .from('conflicts')
@@ -106,10 +125,12 @@ export async function distributeReviewers(_prev, formData) {
     .in('applicant_id', applicantIds);
   const blocked = new Set((conflictRows || []).map((c) => `${c.applicant_id}|${c.member_id}`));
 
-  const { plan, load, short } = distribute(applicantIds, memberIds, perApplicant, blocked);
+  const { plan, load, short } = distribute(applicantIds, memberIds, perApplicant, blocked, Math.random, initialLoad);
 
-  const { error: clearError } = await supabase.from('assignments').delete().eq('round_id', roundId);
-  if (clearError) return { error: `Couldn't clear old assignments: ${clearError.message}` };
+  if (!onlyNew) {
+    const { error: clearError } = await supabase.from('assignments').delete().eq('round_id', roundId);
+    if (clearError) return { error: `Couldn't clear old assignments: ${clearError.message}` };
+  }
 
   const { error: insertError } = await supabase
     .from('assignments')
@@ -122,6 +143,13 @@ export async function distributeReviewers(_prev, formData) {
   const lo = Math.min(...loads);
   const hi = Math.max(...loads);
   const each = Math.min(perApplicant, memberIds.length);
+  if (onlyNew) {
+    return {
+      ok:
+        `Assigned ${applicantIds.length} new applicant${applicantIds.length === 1 ? '' : 's'}, ${each} reviewer${each === 1 ? '' : 's'} each. Existing assignments were kept; reviewers now have ${lo === hi ? lo : `${lo} to ${hi}`} total.` +
+        (short.length ? ` ${short.length} got fewer reviewers because of conflicts.` : ''),
+    };
+  }
   return {
     ok:
       `Assigned ${applicantIds.length} applicants to ${memberIds.length} reviewers, ${each} per applicant. Each reviewer has ${lo === hi ? lo : `${lo} to ${hi}`}.` +
@@ -129,4 +157,16 @@ export async function distributeReviewers(_prev, formData) {
         ? ` ${short.length} applicant${short.length === 1 ? ' has' : 's have'} fewer reviewers because of conflicts; select more reviewers to fill ${short.length === 1 ? 'it' : 'them'}.`
         : ''),
   };
+}
+
+export async function applyCutoff(formData) {
+  const { supabase } = await requireAdmin();
+  const roundId = String(formData.get('roundId'));
+  const cutoff = Number(formData.get('cutoff'));
+  if (!(cutoff >= 1 && cutoff <= 5)) return;
+  const { error } = await supabase.rpc('apply_cutoff', { p_round: roundId, p_cutoff: Math.round(cutoff * 100) / 100 });
+  if (error) throw new Error(`Couldn't apply the cutoff: ${error.message}`);
+  revalidatePath(`/rounds/${roundId}`);
+  revalidatePath('/admin');
+  revalidatePath('/');
 }

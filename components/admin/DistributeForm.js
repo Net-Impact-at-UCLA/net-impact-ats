@@ -11,21 +11,24 @@ export default function DistributeForm({ rounds, members, progress }) {
   const [roundId, setRoundId] = useState(rounds[0]?.id);
   const [selected, setSelected] = useState(() => new Set());
   const [perApplicant, setPerApplicant] = useState(2);
+  const [onlyNew, setOnlyNew] = useState(true);
 
   const round = rounds.find((r) => r.id === roundId);
   const roundProgress = progress[roundId] || {};
   const allOn = selected.size === members.length && members.length > 0;
 
+  const topUp = onlyNew && round?.assignedCount > 0;
   const preview = useMemo(() => {
-    const n = round?.activeCount || 0;
+    const n = topUp ? round?.unassignedCount || 0 : round?.activeCount || 0;
     const m = selected.size;
     if (!n || !m) return null;
     const k = Math.min(perApplicant, m);
     const total = n * k;
     const lo = Math.floor(total / m);
     const hi = Math.ceil(total / m);
+    if (topUp) return `${n} applicant${n === 1 ? '' : 's'} without a reviewer will be spread across the selected members, ${k} reviewer${k === 1 ? '' : 's'} each, favoring whoever has the fewest.`;
     return `${n} applicants, ${k} reviewer${k === 1 ? '' : 's'} each: every selected member gets ${lo === hi ? lo : `${lo} or ${hi}`}.`;
-  }, [round, selected, perApplicant]);
+  }, [round, selected, perApplicant, topUp]);
 
   function toggle(id) {
     setSelected((prev) => {
@@ -36,7 +39,7 @@ export default function DistributeForm({ rounds, members, progress }) {
   }
 
   function confirmReplace(e) {
-    if (round?.assignedCount > 0) {
+    if (round?.assignedCount > 0 && !topUp) {
       const extra = round.scoredCount > 0
         ? ` ${round.scoredCount} scores have already been entered; reviewers who lose an applicant can no longer edit those scores.`
         : '';
@@ -73,6 +76,25 @@ export default function DistributeForm({ rounds, members, progress }) {
         </label>
       </div>
 
+      {round?.assignedCount > 0 && (
+        <fieldset className="mode">
+          <legend className="field-label">What to assign</legend>
+          <label className="check">
+            <input type="radio" name="mode" value="new" checked={onlyNew} onChange={() => setOnlyNew(true)} />
+            <span>
+              Only applicants without a reviewer{' '}
+              <span className="muted">({round.unassignedCount} right now; keeps current assignments)</span>
+            </span>
+          </label>
+          <label className="check">
+            <input type="radio" name="mode" value="all" checked={!onlyNew} onChange={() => setOnlyNew(false)} />
+            <span>
+              Everyone, starting over <span className="muted">(replaces current assignments)</span>
+            </span>
+          </label>
+        </fieldset>
+      )}
+
       <fieldset className="checklist">
         <legend className="field-label">
           Reviewers{' '}
@@ -104,7 +126,7 @@ export default function DistributeForm({ rounds, members, progress }) {
 
       <div className="form-row">
         <button className="btn btn-primary" disabled={pending || selected.size === 0}>
-          {pending ? 'Assigning…' : round?.assignedCount ? 'Reassign reviewers' : 'Assign reviewers'}
+          {pending ? 'Assigning…' : topUp ? 'Assign new applicants' : round?.assignedCount ? 'Reassign everyone' : 'Assign reviewers'}
         </button>
         {state?.ok && <p className="form-ok" role="status">{state.ok}</p>}
         {state?.error && <p className="form-error" role="alert">{state.error}</p>}

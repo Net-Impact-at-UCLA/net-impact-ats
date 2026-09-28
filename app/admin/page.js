@@ -4,6 +4,7 @@ import NotOnRoster from '@/components/NotOnRoster';
 import RosterForm from '@/components/admin/RosterForm';
 import DistributeForm from '@/components/admin/DistributeForm';
 import GraderChart from '@/components/admin/GraderChart';
+import ConfirmButton from '@/components/ConfirmButton';
 import { getSession, getActiveCycle } from '@/lib/session';
 import { updateMember, setRoundPhase } from './actions';
 
@@ -113,6 +114,10 @@ export default async function AdminPage() {
     rounds = (roundRows || []).map((r) => ({
       ...r,
       activeCount: (ra || []).filter((x) => x.round_id === r.id && x.applicants?.status === 'active').length,
+      unassignedCount: (ra || []).filter(
+        (x) => x.round_id === r.id && x.applicants?.status === 'active' &&
+          !(assignments || []).some((a) => a.round_id === r.id && a.applicant_id === x.applicant_id)
+      ).length,
       assignedCount: (assignments || []).filter((x) => x.round_id === r.id).length,
       scoredCount: (scores || []).filter((s) => roundOfCriterion[s.criterion_id] === r.id).length,
       doneCount: Object.values(progress[r.id] || {}).reduce((n, p) => n + p.done, 0),
@@ -143,14 +148,37 @@ export default async function AdminPage() {
                       {r.activeCount} active
                       {r.assignedCount > 0 && `, ${r.doneCount} of ${r.assignedCount} reviews done`}
                     </span>
-                    {(r.phase === 'setup' || r.phase === 'scoring') && (
-                      <form action={setRoundPhase}>
-                        <input type="hidden" name="roundId" value={r.id} />
-                        <input type="hidden" name="phase" value={r.phase === 'setup' ? 'scoring' : 'setup'} />
-                        <button className={`btn ${r.phase === 'setup' ? 'btn-primary' : 'btn-quiet'}`} disabled={r.phase === 'setup' && r.assignedCount === 0}>
-                          {r.phase === 'setup' ? 'Open scoring' : 'Pause scoring'}
-                        </button>
-                      </form>
+                    <span className="round-actions">
+                      {r.phase === 'setup' && (
+                        <PhaseButton id={r.id} to="scoring" primary disabled={r.assignedCount === 0}>Open scoring</PhaseButton>
+                      )}
+                      {r.phase === 'scoring' && (
+                        <>
+                          <PhaseButton id={r.id} to="setup">Pause scoring</PhaseButton>
+                          <PhaseButton id={r.id} to="voting" primary confirm={`Open deliberation voting for ${r.name}? Scoring closes, and every member can see reviewers' scores and notes and vote.`}>
+                            Open voting
+                          </PhaseButton>
+                        </>
+                      )}
+                      {r.phase === 'voting' && (
+                        <>
+                          <PhaseButton id={r.id} to="scoring">Back to scoring</PhaseButton>
+                          <PhaseButton id={r.id} to="closed" primary confirm={`Close voting for ${r.name}? Members will see the anonymized score distribution for the blind cutoff.`}>
+                            Close voting
+                          </PhaseButton>
+                        </>
+                      )}
+                      {r.phase === 'closed' && <PhaseButton id={r.id} to="voting">Reopen voting</PhaseButton>}
+                      {['voting', 'closed', 'released'].includes(r.phase) && (
+                        <a href={`/rounds/${r.id}`} className="btn btn-quiet">
+                          {r.phase === 'closed' ? 'Set cutoff' : r.phase === 'released' ? 'Results' : 'Live votes'}
+                        </a>
+                      )}
+                    </span>
+                    {r.unassignedCount > 0 && r.assignedCount > 0 && ['setup', 'scoring'].includes(r.phase) && (
+                      <span className="round-warn">
+                        {r.unassignedCount} applicant{r.unassignedCount === 1 ? '' : 's'} without a reviewer. Use Assign reviewers below.
+                      </span>
                     )}
                   </li>
                 ))}
@@ -292,6 +320,22 @@ export default async function AdminPage() {
         </section>
       </main>
     </>
+  );
+}
+
+function PhaseButton({ id, to, primary, disabled, confirm, children }) {
+  return (
+    <form action={setRoundPhase}>
+      <input type="hidden" name="roundId" value={id} />
+      <input type="hidden" name="phase" value={to} />
+      {confirm ? (
+        <ConfirmButton className={`btn ${primary ? 'btn-primary' : 'btn-quiet'}`} message={confirm} disabled={disabled}>
+          {children}
+        </ConfirmButton>
+      ) : (
+        <button className={`btn ${primary ? 'btn-primary' : 'btn-quiet'}`} disabled={disabled}>{children}</button>
+      )}
+    </form>
   );
 }
 

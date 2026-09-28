@@ -68,18 +68,53 @@ export default async function Home({ searchParams }) {
     const byId = Object.fromEntries((applicants || []).map((a) => [a.id, a]));
     queue = (mine || [])
       .filter((a) => byId[a.applicant_id])
-      .map((a) => ({
-        applicantId: a.applicant_id,
-        name: byId[a.applicant_id].full_name,
-        roundName: openRounds.find((r) => r.id === a.round_id)?.name,
-        scored: have[`${a.round_id}|${a.applicant_id}`] || 0,
-        total: need[a.round_id] || 0,
-      }))
-      .sort((x, y) => (x.scored >= x.total) - (y.scored >= y.total) || x.name.localeCompare(y.name));
+      .map((a) => {
+        const scored = have[`${a.round_id}|${a.applicant_id}`] || 0;
+        const total = need[a.round_id] || 0;
+        const done = total > 0 && scored >= total;
+        const roundName = openRounds.find((r) => r.id === a.round_id)?.name;
+        return {
+          key: `${a.round_id}-${a.applicant_id}`,
+          applicantId: a.applicant_id,
+          name: byId[a.applicant_id].full_name,
+          done,
+          meta: `${roundName}, ${done ? 'done' : scored ? `${scored} of ${total} scored` : 'not started'}`,
+        };
+      })
+      .sort((x, y) => x.done - y.done || x.name.localeCompare(y.name));
   }
 
   const { data: vouchRows } = await supabase.rpc('vouch_counts', { p_cycle: cycle.id });
   const vouchCount = Object.fromEntries((vouchRows || []).map((v) => [v.applicant_id, Number(v.vouch_count)]));
+
+  // Deliberation voting queue: everyone in a round that's open for voting
+  const votingRounds = (rounds || []).filter((r) => r.phase === 'voting');
+  let voteQueue = [];
+  if (votingRounds.length) {
+    const vIds = votingRounds.map((r) => r.id);
+    const [{ data: inVote }, { data: myVotes }, { data: myConflicts }] = await Promise.all([
+      supabase.from('round_applicants').select('round_id, applicant_id').in('round_id', vIds),
+      supabase.from('votes').select('round_id, applicant_id, stars, recused').eq('member_id', member.id).in('round_id', vIds),
+      supabase.from('conflicts').select('applicant_id').eq('member_id', member.id),
+    ]);
+    const byIdV = Object.fromEntries((applicants || []).map((a) => [a.id, a]));
+    const conflictSet = new Set((myConflicts || []).map((c) => c.applicant_id));
+    const voteOf = Object.fromEntries((myVotes || []).map((v) => [`${v.round_id}|${v.applicant_id}`, v]));
+    voteQueue = (inVote || [])
+      .filter((x) => byIdV[x.applicant_id]?.status === 'active' && !conflictSet.has(x.applicant_id))
+      .map((x) => {
+        const v = voteOf[`${x.round_id}|${x.applicant_id}`];
+        const roundName = votingRounds.find((r) => r.id === x.round_id)?.name;
+        return {
+          key: `v-${x.round_id}-${x.applicant_id}`,
+          applicantId: x.applicant_id,
+          name: byIdV[x.applicant_id].full_name,
+          done: !!v,
+          meta: `${roundName}, ${v ? (v.recused ? 'recused' : `voted ${Number(v.stars)}`) : 'not voted'}`,
+        };
+      })
+      .sort((x, y) => x.done - y.done || x.name.localeCompare(y.name));
+  }
 
   const urls = await signedUrls(supabase, (applicants || []).map((a) => a.headshot_path));
   const list = withProgress(applicants || [], rounds || [], roundApplicants || []).map((a) => ({
@@ -97,7 +132,8 @@ export default async function Home({ searchParams }) {
           <h1>Applicants</h1>
           <p className="page-sub">{list.length} in {cycle.name}</p>
         </div>
-        {queue.length > 0 && <Queue items={queue} />}
+        {voteQueue.length > 0 && <Queue title="Deliberation voting" items={voteQueue} doneLabel="voted" tone="vote" />}
+        {queue.length > 0 && <Queue title="Your review queue" items={queue} />}
         {list.length === 0 ? (
           <div className="empty">
             <h2>No applicants yet</h2>

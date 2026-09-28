@@ -11,6 +11,7 @@ export default function Header({ member, cycleName }) {
         {cycleName && <span className="cycle-name">{cycleName}</span>}
         <nav className="topnav">
           <Link href="/">Applicants</Link>
+          <Link href="/rounds">Rounds</Link>
           {member?.role === 'admin' && <Link href="/admin">Admin</Link>}
         </nav>
         <div className="topbar-right">

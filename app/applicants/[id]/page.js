@@ -8,6 +8,8 @@ import ScorePanel from '@/components/ScorePanel';
 import VouchBox from '@/components/VouchBox';
 import ConflictButton from '@/components/ConflictButton';
 import RemoveApplicantButton from '@/components/RemoveApplicantButton';
+import VotePanel from '@/components/VotePanel';
+import ReviewSummary from '@/components/ReviewSummary';
 import { getSession, signedUrls } from '@/lib/session';
 import { withProgress } from '@/lib/applicants';
 
@@ -122,6 +124,68 @@ export default async function ApplicantPage({ params }) {
   const adminVouches = (adminVouchRes.data || []).map((v) => ({ name: v.members?.full_name || v.members?.email, reason: v.reason }));
   const firstName = applicant.full_name.split(' ')[0];
 
+  // ---------- Deliberations ----------
+  // Reviewer scores/notes are shown once a round reaches voting (admins see them live).
+  const myRoundIdsForApplicant = (roundApplicants || []).map((ra) => ra.round_id);
+  const summaryRounds = (rounds || [])
+    .filter((r) => myRoundIdsForApplicant.includes(r.id))
+    .filter((r) => ['voting', 'closed', 'released'].includes(r.phase) || (isAdmin && r.phase === 'scoring'))
+    .sort((a, b) => b.sort_order - a.sort_order);
+
+  let summaries = [];
+  if (summaryRounds.length) {
+    const ids = summaryRounds.map((r) => r.id);
+    const [{ data: sCrit }, { data: sNotes }, { data: roster }] = await Promise.all([
+      supabase.from('criteria').select('id, round_id, name, sort_order').in('round_id', ids).order('sort_order'),
+      supabase.from('notes').select('round_id, member_id, criterion_id, body').eq('applicant_id', id).in('round_id', ids),
+      supabase.from('members').select('id, full_name, email'),
+    ]);
+    const critIds = (sCrit || []).map((c) => c.id);
+    const { data: sScores } = critIds.length
+      ? await supabase.from('scores').select('criterion_id, member_id, score').eq('applicant_id', id).in('criterion_id', critIds)
+      : { data: [] };
+    const nameOf = Object.fromEntries((roster || []).map((m) => [m.id, m.full_name || m.email]));
+    const roundOfCrit = Object.fromEntries((sCrit || []).map((c) => [c.id, c.round_id]));
+    summaries = summaryRounds.map((r) => {
+      const byMember = {};
+      const get = (mid) => (byMember[mid] ??= { id: mid, name: nameOf[mid] || 'Former member', scores: {}, notes: {} });
+      (sScores || []).filter((x) => roundOfCrit[x.criterion_id] === r.id).forEach((x) => (get(x.member_id).scores[x.criterion_id] = x.score));
+      (sNotes || []).filter((n) => n.round_id === r.id).forEach((n) => (get(n.member_id).notes[n.criterion_id || 'general'] = n.body));
+      return {
+        round: r,
+        criteria: (sCrit || []).filter((c) => c.round_id === r.id),
+        reviewers: Object.values(byMember).sort((a, b) => a.name.localeCompare(b.name)),
+      };
+    });
+  }
+
+  // Voting panel for the round currently in deliberation
+  const votingRound = (rounds || []).find((r) => r.phase === 'voting' && myRoundIdsForApplicant.includes(r.id));
+  let vote = null;
+  if (votingRound) {
+    const [{ data: inRound }, { data: myVotes }, { data: myConflicts }] = await Promise.all([
+      supabase.from('round_applicants').select('applicant_id, applicants(full_name, status)').eq('round_id', votingRound.id),
+      supabase.from('votes').select('applicant_id, stars, recused').eq('round_id', votingRound.id).eq('member_id', member.id),
+      supabase.from('conflicts').select('applicant_id').eq('member_id', member.id),
+    ]);
+    const conflictSet = new Set((myConflicts || []).map((c) => c.applicant_id));
+    const votedSet = new Set((myVotes || []).map((v) => v.applicant_id));
+    const pool = (inRound || [])
+      .filter((x) => x.applicants?.status === 'active' && !conflictSet.has(x.applicant_id))
+      .map((x) => ({ id: x.applicant_id, name: x.applicants.full_name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+    const todo = pool.filter((p) => p.id !== id && !votedSet.has(p.id));
+    const nextUp = todo.find((p) => p.name.localeCompare(applicant.full_name) > 0) || todo[0] || null;
+    vote = {
+      round: votingRound,
+      initial: (myVotes || []).find((v) => v.applicant_id === id) || null,
+      conflicted: conflictSet.has(id),
+      next: nextUp,
+      votedCount: pool.filter((p) => votedSet.has(p.id)).length,
+      totalCount: pool.length,
+    };
+  }
+
   const [withStage] = withProgress([applicant], rounds || [], roundApplicants || []);
   const urls = await signedUrls(supabase, [applicant.headshot_path, applicant.resume_path]);
   const headshot = urls[applicant.headshot_path];
@@ -140,7 +204,7 @@ export default async function ApplicantPage({ params }) {
       <main className="page profile">
         <Link href="/" className="back">Back to applicants</Link>
 
-        <div className={`profile-grid ${panels.length || waitingRounds.length ? 'has-score' : ''}`}>
+        <div className={`profile-grid ${panels.length || waitingRounds.length || vote ? 'has-score' : ''}`}>
           <aside className="profile-side">
             <div className="profile-id">
               <Avatar name={applicant.full_name} src={headshot} size={120} />
@@ -204,6 +268,9 @@ export default async function ApplicantPage({ params }) {
           </aside>
 
           <div className="profile-main">
+            {summaries.map((sm) => (
+              <ReviewSummary key={sm.round.id} round={sm.round} criteria={sm.criteria} reviewers={sm.reviewers} />
+            ))}
             <section className="block">
               <div className="block-head">
                 <h2>Resume</h2>
@@ -221,8 +288,20 @@ export default async function ApplicantPage({ params }) {
             <Answer title="Something not on their resume" body={applicant.fun_fact} />
           </div>
 
-          {(panels.length > 0 || waitingRounds.length > 0) && (
+          {(panels.length > 0 || waitingRounds.length > 0 || vote) && (
             <aside className="profile-score">
+              {vote && (
+                <VotePanel
+                  round={vote.round}
+                  applicantId={id}
+                  memberId={member.id}
+                  initial={vote.initial}
+                  conflicted={vote.conflicted}
+                  next={vote.next}
+                  votedCount={vote.votedCount}
+                  totalCount={vote.totalCount}
+                />
+              )}
               {panels.map((p) => (
                 <ScorePanel
                   key={p.round.id}
