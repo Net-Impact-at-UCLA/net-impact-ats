@@ -189,6 +189,12 @@ export default async function ApplicantPage({ params }) {
                     <div><dt>Submitted</dt><dd>{new Date(priv.submitted_at).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}</dd></div>
                   )}
                 </dl>
+                {priv?.import_issues && (
+                  <div className="import-issue">
+                    <h3>Import problem</h3>
+                    <p className="prose">{priv.import_issues}</p>
+                  </div>
+                )}
                 <h3>Extenuating circumstances</h3>
                 <p className="prose">{priv?.extenuating_circumstances || 'None shared.'}</p>
               </section>

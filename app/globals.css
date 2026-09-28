@@ -355,3 +355,7 @@ h3 { font-size: 14px; font-weight: 600; }
 .gchart-ticks > span:nth-child(6) { transform: translateX(-100%); }
 .gchart-club-label { top: 16px !important; color: #7a5410; font-weight: 600; white-space: nowrap; }
 @media (max-width: 640px) { .gchart-row, .gchart-axis { grid-template-columns: 90px 1fr 40px; } }
+
+.import-issue { background: #fdecea; border-radius: var(--radius-s); padding: 10px 12px; }
+.import-issue h3 { color: var(--danger); margin-bottom: 4px; }
+.import-issue .prose { font-size: 13px; }
