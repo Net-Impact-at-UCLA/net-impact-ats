@@ -9,6 +9,10 @@ export default function Header({ member, cycleName }) {
           Net Impact ATS
         </Link>
         {cycleName && <span className="cycle-name">{cycleName}</span>}
+        <nav className="topnav">
+          <Link href="/">Applicants</Link>
+          {member?.role === 'admin' && <Link href="/admin">Admin</Link>}
+        </nav>
         <div className="topbar-right">
           {member && (
             <span className="who">

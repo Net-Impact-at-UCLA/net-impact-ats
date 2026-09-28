@@ -4,6 +4,7 @@ import Header from '@/components/Header';
 import NotOnRoster from '@/components/NotOnRoster';
 import Avatar from '@/components/Avatar';
 import StageTrack from '@/components/StageTrack';
+import ScorePanel from '@/components/ScorePanel';
 import { getSession, signedUrls } from '@/lib/session';
 import { withProgress } from '@/lib/applicants';
 
@@ -21,13 +22,55 @@ export default async function ApplicantPage({ params }) {
 
   const isAdmin = member.role === 'admin';
   const [{ data: rounds }, { data: roundApplicants }, privateRes] = await Promise.all([
-    supabase.from('rounds').select('id, name, sort_order').eq('cycle_id', applicant.cycle_id).order('sort_order'),
+    supabase.from('rounds').select('id, name, phase, sort_order').eq('cycle_id', applicant.cycle_id).order('sort_order'),
     supabase.from('round_applicants').select('round_id, applicant_id').eq('applicant_id', id),
     isAdmin
       ? supabase.from('applicant_private').select('*').eq('applicant_id', id).maybeSingle()
       : Promise.resolve({ data: null }),
   ]);
   const priv = privateRes.data;
+
+  // Rounds this member is assigned to review for this applicant
+  const { data: myAssignments } = await supabase
+    .from('assignments')
+    .select('round_id')
+    .eq('applicant_id', id)
+    .eq('member_id', member.id);
+  const myRoundIds = (myAssignments || []).map((a) => a.round_id);
+  const myRounds = (rounds || []).filter((r) => myRoundIds.includes(r.id));
+  const openRounds = myRounds.filter((r) => r.phase === 'scoring');
+
+  let panels = [];
+  if (openRounds.length) {
+    const openIds = openRounds.map((r) => r.id);
+    const { data: criteria } = await supabase
+      .from('criteria')
+      .select('id, round_id, name, min_score, max_score, sort_order')
+      .in('round_id', openIds)
+      .order('sort_order');
+    const criteriaIds = (criteria || []).map((c) => c.id);
+    const [{ data: myScores }, { data: myNotes }] = await Promise.all([
+      criteriaIds.length
+        ? supabase.from('scores').select('criterion_id, score').eq('applicant_id', id).eq('member_id', member.id).in('criterion_id', criteriaIds)
+        : Promise.resolve({ data: [] }),
+      supabase.from('notes').select('round_id, criterion_id, body').eq('applicant_id', id).eq('member_id', member.id).in('round_id', openIds),
+    ]);
+    panels = openRounds.map((r) => {
+      const rc = (criteria || []).filter((c) => c.round_id === r.id);
+      const scores = {};
+      (myScores || []).forEach((s) => {
+        if (rc.some((c) => c.id === s.criterion_id)) scores[s.criterion_id] = s.score;
+      });
+      const notes = {};
+      (myNotes || [])
+        .filter((n) => n.round_id === r.id)
+        .forEach((n) => {
+          notes[n.criterion_id || 'general'] = n.body;
+        });
+      return { round: r, criteria: rc, scores, notes };
+    });
+  }
+  const waitingRounds = myRounds.filter((r) => r.phase === 'setup');
 
   const [withStage] = withProgress([applicant], rounds || [], roundApplicants || []);
   const urls = await signedUrls(supabase, [applicant.headshot_path, applicant.resume_path]);
@@ -47,7 +90,7 @@ export default async function ApplicantPage({ params }) {
       <main className="page profile">
         <Link href="/" className="back">Back to applicants</Link>
 
-        <div className="profile-grid">
+        <div className={`profile-grid ${panels.length || waitingRounds.length ? 'has-score' : ''}`}>
           <aside className="profile-side">
             <div className="profile-id">
               <Avatar name={applicant.full_name} src={headshot} size={120} />
@@ -109,6 +152,28 @@ export default async function ApplicantPage({ params }) {
             <Answer title="A social or environmental issue that matters to them" body={applicant.social_issue} />
             <Answer title="Something not on their resume" body={applicant.fun_fact} />
           </div>
+
+          {(panels.length > 0 || waitingRounds.length > 0) && (
+            <aside className="profile-score">
+              {panels.map((p) => (
+                <ScorePanel
+                  key={p.round.id}
+                  round={p.round}
+                  criteria={p.criteria}
+                  initialScores={p.scores}
+                  initialNotes={p.notes}
+                  applicantId={id}
+                  memberId={member.id}
+                />
+              ))}
+              {waitingRounds.map((r) => (
+                <section key={r.id} className="score-panel score-waiting">
+                  <h2>You&apos;re reviewing this applicant for {r.name}</h2>
+                  <p className="muted">Scoring opens when an admin starts the round.</p>
+                </section>
+              ))}
+            </aside>
+          )}
         </div>
       </main>
     </>
