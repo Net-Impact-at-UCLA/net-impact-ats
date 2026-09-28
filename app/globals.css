@@ -264,12 +264,20 @@ h3 { font-size: 14px; font-weight: 600; }
 .save-saved { color: var(--evergreen); }
 .save-error { color: var(--danger); }
 
-/* Stars: the one place gold does the talking */
-.stars { display: flex; align-items: center; gap: 1px; flex-shrink: 0; }
-.star { background: none; border: none; padding: 2px; cursor: pointer; line-height: 0; border-radius: 4px; }
-.star svg { width: 22px; height: 22px; fill: none; stroke: #b9c4bd; stroke-width: 1.5; stroke-linejoin: round; transition: fill 80ms, stroke 80ms; }
-.star-on svg { fill: var(--gold); stroke: var(--gold); }
-.star:disabled { cursor: default; }
+/* Stars: the one place gold does the talking. Each star is split into two
+   click targets: left half = .5, right half = whole star. */
+.stars { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
+.star { position: relative; width: 24px; height: 24px; display: inline-block; }
+.star svg { position: absolute; top: 0; left: 0; width: 24px; height: 24px; }
+.star-outline path { fill: none; stroke: #b9c4bd; stroke-width: 1.5; stroke-linejoin: round; }
+.star-fill { position: absolute; top: 0; left: 0; height: 24px; overflow: hidden; transition: width 80ms; }
+.star-fill path { fill: var(--gold); stroke: var(--gold); stroke-width: 1.5; stroke-linejoin: round; }
+.star-hit { position: absolute; top: 0; height: 100%; width: 50%; padding: 0; border: none; background: transparent; cursor: pointer; }
+.star-hit-left { left: 0; border-radius: 4px 0 0 4px; }
+.star-hit-right { right: 0; border-radius: 0 4px 4px 0; }
+.star-hit:focus-visible { outline: 2px solid var(--evergreen); outline-offset: 0; }
+.star-hit:disabled { cursor: default; }
+.star-value { width: 26px; margin-left: 4px; font-size: 13px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
 .star-zero {
   font: inherit; font-size: 12px; font-weight: 600; width: 24px; height: 24px; margin-right: 4px;
   border: 1px solid var(--line); border-radius: 50%; background: var(--surface); color: var(--muted); cursor: pointer;
