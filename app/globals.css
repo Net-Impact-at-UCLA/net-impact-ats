@@ -426,3 +426,68 @@ h3 { font-size: 14px; font-weight: 600; }
 .results-table .res-out td { color: var(--muted); }
 .results-table .res-in td:last-child { color: var(--evergreen); font-weight: 600; }
 @media (max-width: 640px) { .cutoff-slider { grid-template-columns: 1fr auto; } .cutoff-slider .field-label { grid-column: 1 / -1; } }
+
+/* Coffee chats: My table */
+.table-page { max-width: 1280px; }
+.table-board { display: flex; flex-direction: column; gap: 24px; }
+.table-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; }
+.table-head p { margin: 6px 0 0; }
+.table-search { position: relative; }
+.table-search-input {
+  width: 100%; font: inherit; font-size: 20px; padding: 16px 18px;
+  border: 2px solid var(--line); border-radius: var(--radius-m); background: var(--surface);
+}
+.table-search-input:focus { border-color: var(--evergreen); outline: none; box-shadow: 0 0 0 4px var(--sage); }
+.table-results {
+  list-style: none; margin: 8px 0 0; padding: 6px; background: var(--surface);
+  border: 1px solid var(--line); border-radius: var(--radius-m); box-shadow: 0 8px 24px rgba(22, 36, 28, 0.08);
+}
+.table-result { display: flex; align-items: center; gap: 14px; padding: 8px 10px; border-radius: var(--radius-s); }
+.table-result:hover { background: var(--paper); }
+.table-result-main { flex: 1; display: flex; flex-direction: column; font-size: 14px; min-width: 0; }
+.table-result-name { font-weight: 600; font-size: 16px; }
+.table-result-note { font-size: 13px; }
+.table-result-empty { padding: 12px; color: var(--muted); }
+.rotation h2 { margin-bottom: 12px; display: flex; gap: 10px; align-items: baseline; }
+.rotation h2 .muted { font-size: 14px; font-weight: 400; }
+.rotation-empty { margin: 0; padding: 28px; text-align: center; border: 2px dashed var(--line); border-radius: var(--radius-m); }
+.rotation-earlier { opacity: 0.9; }
+.chat-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+.chat-cards-compact { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.chat-card {
+  position: relative; background: var(--surface); border: 1px solid var(--line); border-top: 3px solid var(--gold);
+  border-radius: var(--radius-m); padding: 18px; display: flex; flex-direction: column; gap: 14px;
+}
+.chat-card-done { border-top-color: var(--evergreen); }
+.chat-card-compact { padding: 14px; gap: 10px; }
+.chat-remove {
+  position: absolute; top: 8px; right: 10px; width: 28px; height: 28px; border-radius: 50%;
+  border: none; background: transparent; color: var(--muted); font-size: 20px; line-height: 1; cursor: pointer;
+}
+.chat-remove:hover { background: #fdecea; color: var(--danger); }
+.chat-id { display: flex; align-items: center; gap: 16px; padding-right: 24px; }
+.chat-id h3 { font-size: 18px; }
+.chat-card-compact .chat-id h3 { font-size: 15px; }
+.chat-id p { margin: 2px 0 0; font-size: 13px; }
+.chat-detail { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.chat-scores { display: flex; flex-direction: column; gap: 8px; }
+.chat-criterion { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.chat-card:not(.chat-card-compact) .chat-scores .star,
+.chat-card:not(.chat-card-compact) .chat-scores .star svg { width: 30px; height: 30px; }
+.chat-card:not(.chat-card-compact) .chat-scores .star-fill { height: 30px; }
+@media (max-width: 640px) { .table-head { flex-direction: column; align-items: stretch; } }
+.topnav .topnav-table { color: var(--evergreen-deep); background: var(--sage); font-weight: 600; }
+/* Coffee chat cards with several criteria: name left, stars right, even rows */
+.chat-cards { grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); }
+.chat-scores-multi { gap: 4px; }
+.chat-scores-multi .chat-criterion { flex-wrap: nowrap; padding: 4px 0; border-bottom: 1px solid var(--line); }
+.chat-scores-multi .chat-criterion:last-child { border-bottom: none; }
+.chat-scores-multi .criterion-name { font-size: 14px; }
+.chat-card:not(.chat-card-compact) .chat-scores-multi .star,
+.chat-card:not(.chat-card-compact) .chat-scores-multi .star svg { width: 24px; height: 24px; }
+.chat-card:not(.chat-card-compact) .chat-scores-multi .star-fill { height: 24px; }
+.chat-card-compact .chat-scores-multi .criterion-name { font-size: 13px; }
+.chat-scores-multi { gap: 12px; }
+.chat-scores-multi .chat-criterion { flex-direction: column; align-items: flex-start; gap: 4px; }
+.chat-criterion-name { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.chat-card-compact .chat-criterion-name { font-size: 12px; }

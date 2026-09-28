@@ -72,9 +72,11 @@ export default async function Home({ searchParams }) {
         const scored = have[`${a.round_id}|${a.applicant_id}`] || 0;
         const total = need[a.round_id] || 0;
         const done = total > 0 && scored >= total;
-        const roundName = openRounds.find((r) => r.id === a.round_id)?.name;
+        const round = openRounds.find((r) => r.id === a.round_id);
+        const roundName = round?.name;
         return {
           key: `${a.round_id}-${a.applicant_id}`,
+          href: round?.stage === 'coffee_chat' ? '/table' : undefined,
           applicantId: a.applicant_id,
           name: byId[a.applicant_id].full_name,
           done,

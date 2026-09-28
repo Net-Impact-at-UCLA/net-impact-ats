@@ -17,7 +17,7 @@ export default function Queue({ title, items, doneLabel = 'done', tone = 'review
       <ul className="queue-list">
         {items.map((i) => (
           <li key={i.key}>
-            <Link href={`/applicants/${i.applicantId}`} className={`queue-item ${i.done ? 'queue-done' : ''}`}>
+            <Link href={i.href || `/applicants/${i.applicantId}`} className={`queue-item ${i.done ? 'queue-done' : ''}`}>
               <span className="queue-name">{i.name}</span>
               <span className="queue-meta">{i.meta}</span>
             </Link>
