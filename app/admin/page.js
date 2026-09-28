@@ -3,6 +3,7 @@ import Header from '@/components/Header';
 import NotOnRoster from '@/components/NotOnRoster';
 import RosterForm from '@/components/admin/RosterForm';
 import DistributeForm from '@/components/admin/DistributeForm';
+import GraderChart from '@/components/admin/GraderChart';
 import { getSession, getActiveCycle } from '@/lib/session';
 import { updateMember, setRoundPhase } from './actions';
 
@@ -180,6 +181,7 @@ export default async function AdminPage() {
                     <h3>
                       {t.round.name} <span className="muted">club average {t.clubAvg.toFixed(2)}</span>
                     </h3>
+                    <GraderChart rows={t.rows} clubAvg={t.clubAvg} />
                     <div className="table-wrap">
                       <table className="table">
                         <thead>
@@ -187,7 +189,7 @@ export default async function AdminPage() {
                             <th scope="col">Reviewer</th>
                             <th scope="col" className="num">Average</th>
                             <th scope="col" className="num">vs. club</th>
-                            <th scope="col" className="num">Applicants scored</th>
+                            <th scope="col" className="num">Applicants with scores</th>
                           </tr>
                         </thead>
                         <tbody>
