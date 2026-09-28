@@ -359,3 +359,8 @@ h3 { font-size: 14px; font-weight: 600; }
 .import-issue { background: #fdecea; border-radius: var(--radius-s); padding: 10px 12px; }
 .import-issue h3 { color: var(--danger); margin-bottom: 4px; }
 .import-issue .prose { font-size: 13px; }
+
+.btn-danger { background: var(--surface); color: var(--danger); border-color: #e3b5ad; }
+.btn-danger:hover { background: #fdecea; border-color: var(--danger); }
+.remove-applicant { border-top: 1px dashed var(--gold); padding-top: 12px; margin-top: 4px; }
+.flash { background: var(--sage); color: var(--evergreen-deep); border-radius: var(--radius-s); padding: 10px 14px; margin: 0 0 16px; font-size: 14px; }

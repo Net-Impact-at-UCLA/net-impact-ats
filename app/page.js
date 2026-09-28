@@ -5,7 +5,8 @@ import Queue from '@/components/Queue';
 import { getSession, getActiveCycle, signedUrls } from '@/lib/session';
 import { withProgress } from '@/lib/applicants';
 
-export default async function Home() {
+export default async function Home({ searchParams }) {
+  const { removed } = await searchParams;
   const { supabase, user, member } = await getSession();
   if (!member) return <NotOnRoster email={user?.email} />;
 
@@ -91,6 +92,7 @@ export default async function Home() {
     <>
       <Header member={member} cycleName={cycle.name} />
       <main className="page">
+        {removed && <p className="flash" role="status">Applicant removed.</p>}
         <div className="page-head">
           <h1>Applicants</h1>
           <p className="page-sub">{list.length} in {cycle.name}</p>

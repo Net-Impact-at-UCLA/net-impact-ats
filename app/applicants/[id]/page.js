@@ -7,6 +7,7 @@ import StageTrack from '@/components/StageTrack';
 import ScorePanel from '@/components/ScorePanel';
 import VouchBox from '@/components/VouchBox';
 import ConflictButton from '@/components/ConflictButton';
+import RemoveApplicantButton from '@/components/RemoveApplicantButton';
 import { getSession, signedUrls } from '@/lib/session';
 import { withProgress } from '@/lib/applicants';
 
@@ -197,6 +198,7 @@ export default async function ApplicantPage({ params }) {
                 )}
                 <h3>Extenuating circumstances</h3>
                 <p className="prose">{priv?.extenuating_circumstances || 'None shared.'}</p>
+                <RemoveApplicantButton id={id} name={applicant.full_name} />
               </section>
             )}
           </aside>
