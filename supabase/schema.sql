@@ -59,7 +59,7 @@ create table public.criteria (
   round_id      uuid not null references public.rounds on delete cascade,
   name          text not null,
   sort_order    int not null default 0,
-  min_score     int not null default 1 check (min_score in (0, 1)),
+  min_score     int not null default 0 check (min_score in (0, 1)),
   max_score     int not null default 5 check (max_score = 5),
   context_field text
 );
@@ -117,7 +117,7 @@ create table public.scores (
   criterion_id uuid not null references public.criteria on delete cascade,
   applicant_id uuid not null references public.applicants on delete cascade,
   member_id    uuid not null references public.members on delete cascade,
-  score        int not null check (score between 0 and 5),
+  score        numeric(2,1) not null check (score between 0 and 5 and score * 2 = trunc(score * 2)),
   updated_at   timestamptz not null default now(),
   primary key (criterion_id, applicant_id, member_id)
 );
@@ -140,7 +140,7 @@ create table public.votes (
   round_id     uuid not null references public.rounds on delete cascade,
   applicant_id uuid not null references public.applicants on delete cascade,
   member_id    uuid not null references public.members on delete cascade,
-  stars        int check (stars between 1 and 5),
+  stars        numeric(2,1) check (stars between 1 and 5 and stars * 2 = trunc(stars * 2)),
   recused      boolean not null default false,
   updated_at   timestamptz not null default now(),
   primary key (round_id, applicant_id, member_id),
@@ -182,7 +182,7 @@ language sql stable security definer set search_path = public as $$
 $$;
 
 -- Assigned member, round in scoring phase, score within the criterion's range.
-create function public.can_score(p_criterion uuid, p_applicant uuid, p_member uuid, p_score int)
+create function public.can_score(p_criterion uuid, p_applicant uuid, p_member uuid, p_score numeric)
 returns boolean
 language sql stable security definer set search_path = public as $$
   select p_member = current_member_id() and exists (
@@ -454,12 +454,12 @@ begin
 
   -- Application
   insert into rounds (cycle_id, stage, sort_order, name)
-  values (v_cycle, 'application', 1, 'Application') returning id into v_round;
+  values (v_cycle, 'application', 0, 'Application') returning id into v_round;
   insert into criteria (round_id, name, sort_order, min_score, context_field) values
-    (v_round, 'Resume Content',  1, 1, 'resume'),
-    (v_round, 'Resume Format',   2, 1, 'resume'),
-    (v_round, 'Why Net Impact?', 3, 1, 'why_net_impact'),
-    (v_round, 'Social Impact',   4, 1, 'social_issue');
+    (v_round, 'Resume Content',  1, 0, 'resume'),
+    (v_round, 'Resume Format',   2, 0, 'resume'),
+    (v_round, 'Why Net Impact?', 3, 0, 'why_net_impact'),
+    (v_round, 'Social Impact',   4, 0, 'social_issue');
 
   -- Coffee chats
   insert into rounds (cycle_id, stage, sort_order, name)
@@ -471,21 +471,21 @@ begin
   insert into rounds (cycle_id, stage, sort_order, name)
   values (v_cycle, 'r1', 3, 'R1: Group Case') returning id into v_round;
   insert into criteria (round_id, name, sort_order, min_score) values
-    (v_round, 'Collaboration',     1, 1),
-    (v_round, 'Intro / Framework', 2, 1),
-    (v_round, 'Section 1',         3, 1),
-    (v_round, 'Section 2 (Math)',  4, 1),
-    (v_round, 'Recommendation',    5, 1);
+    (v_round, 'Collaboration',     1, 0),
+    (v_round, 'Intro / Framework', 2, 0),
+    (v_round, 'Section 1',         3, 0),
+    (v_round, 'Section 2 (Math)',  4, 0),
+    (v_round, 'Recommendation',    5, 0);
 
   -- R2 final
   insert into rounds (cycle_id, stage, sort_order, name)
   values (v_cycle, 'r2', 4, 'R2: Final Interview') returning id into v_round;
   insert into criteria (round_id, name, sort_order, min_score) values
     (v_round, 'Behaviorals',       1, 0),
-    (v_round, 'Intro / Framework', 2, 1),
-    (v_round, 'Section 1',         3, 1),
-    (v_round, 'Section 2',         4, 1),
-    (v_round, 'Recommendation',    5, 1);
+    (v_round, 'Intro / Framework', 2, 0),
+    (v_round, 'Section 1',         3, 0),
+    (v_round, 'Section 2',         4, 0),
+    (v_round, 'Recommendation',    5, 0);
 
   return v_cycle;
 end $$;
