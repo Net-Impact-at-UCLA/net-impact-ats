@@ -465,7 +465,8 @@ begin
   insert into rounds (cycle_id, stage, sort_order, name)
   values (v_cycle, 'coffee_chat', 2, 'Coffee Chats') returning id into v_round;
   insert into criteria (round_id, name, sort_order, min_score) values
-    (v_round, 'Overall', 1, 0);
+    (v_round, 'Social Fit',      1, 0),
+    (v_round, 'Professionalism', 2, 0);
 
   -- R1 group case
   insert into rounds (cycle_id, stage, sort_order, name)
