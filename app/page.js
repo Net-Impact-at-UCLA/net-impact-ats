@@ -77,10 +77,14 @@ export default async function Home() {
       .sort((x, y) => (x.scored >= x.total) - (y.scored >= y.total) || x.name.localeCompare(y.name));
   }
 
+  const { data: vouchRows } = await supabase.rpc('vouch_counts', { p_cycle: cycle.id });
+  const vouchCount = Object.fromEntries((vouchRows || []).map((v) => [v.applicant_id, Number(v.vouch_count)]));
+
   const urls = await signedUrls(supabase, (applicants || []).map((a) => a.headshot_path));
   const list = withProgress(applicants || [], rounds || [], roundApplicants || []).map((a) => ({
     ...a,
     headshotUrl: urls[a.headshot_path] || null,
+    vouches: vouchCount[a.id] || 0,
   }));
 
   return (

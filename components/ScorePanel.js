@@ -1,13 +1,14 @@
 'use client';
 
 import { useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import StarInput from './StarInput';
 
 // criteria: [{ id, name, min_score, max_score }]
 // initialScores: { [criterionId]: number }
 // initialNotes: { general: string, [criterionId]: string }
-export default function ScorePanel({ round, criteria, initialScores, initialNotes, applicantId, memberId }) {
+export default function ScorePanel({ round, criteria, initialScores, initialNotes, applicantId, memberId, next }) {
   const supabase = useMemo(() => createClient(), []);
   const [scores, setScores] = useState(initialScores);
   const [notes, setNotes] = useState(initialNotes);
@@ -116,6 +117,20 @@ export default function ScorePanel({ round, criteria, initialScores, initialNote
       <p className={`save-status save-${status?.kind || 'idle'}`} role="status" aria-live="polite">
         {status?.text || 'Scores save as you click. Notes save when you click away.'}
       </p>
+
+      <div className="next-queue">
+        {next ? (
+          <Link href={`/applicants/${next.id}`} className="btn btn-primary btn-wide">
+            Next in queue: {next.name}
+          </Link>
+        ) : (
+          <p className="muted next-done">
+            {scoredCount >= criteria.length ? 'That’s your whole queue for this round.' : 'This is the last one in your queue.'}{' '}
+            <Link href="/">Back to applicants</Link>
+          </p>
+        )}
+        {next && <p className="muted next-left">{next.remaining} left in your queue besides this one</p>}
+      </div>
     </section>
   );
 }

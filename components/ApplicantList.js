@@ -20,7 +20,8 @@ export default function ApplicantList({ applicants, rounds }) {
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
     return applicants.filter((a) => {
-      if (roundId !== 'all' && a.currentRoundId !== roundId) return false;
+      if (roundId === 'vouched' && !a.vouches) return false;
+      if (roundId !== 'all' && roundId !== 'vouched' && a.currentRoundId !== roundId) return false;
       if (!q) return true;
       return [a.full_name, a.majors, a.grad_year, a.pronouns].join(' ').toLowerCase().includes(q);
     });
@@ -38,6 +39,15 @@ export default function ApplicantList({ applicants, rounds }) {
           >
             All <span className="tab-count">{applicants.length}</span>
           </button>
+          <button
+            role="tab"
+            aria-selected={roundId === 'vouched'}
+            className={`tab tab-vouch ${roundId === 'vouched' ? 'tab-on' : ''}`}
+            onClick={() => setRoundId('vouched')}
+          >
+            Hard vouched <span className="tab-count">{applicants.filter((a) => a.vouches).length}</span>
+          </button>
+          <span className="tab-sep" aria-hidden="true" />
           {rounds.map((r) => (
             <button
               key={r.id}
@@ -72,6 +82,11 @@ export default function ApplicantList({ applicants, rounds }) {
                   <span className="row-name">
                     {a.full_name}
                     {a.pronouns && <span className="row-pronouns">{a.pronouns}</span>}
+                    {a.vouches > 0 && (
+                      <span className="vouch-pill" title={`Hard vouched${a.vouches > 1 ? ` by ${a.vouches} members` : ''}`}>
+                        Hard vouched{a.vouches > 1 ? ` ×${a.vouches}` : ''}
+                      </span>
+                    )}
                   </span>
                   <span className="row-meta">{[a.majors, a.grad_year && `Class of ${a.grad_year}`].filter(Boolean).join(', ')}</span>
                 </span>

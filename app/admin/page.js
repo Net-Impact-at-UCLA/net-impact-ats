@@ -31,6 +31,8 @@ export default async function AdminPage() {
 
   let rounds = [];
   let progress = {};
+  let graderTables = [];
+  let conflictRows = [];
   if (cycle) {
     const { data: roundRows } = await supabase
       .from('rounds')
@@ -46,7 +48,7 @@ export default async function AdminPage() {
     ]);
     const criteriaIds = (criteria || []).map((c) => c.id);
     const { data: scores } = criteriaIds.length
-      ? await supabase.from('scores').select('criterion_id, applicant_id, member_id').in('criterion_id', criteriaIds)
+      ? await supabase.from('scores').select('criterion_id, applicant_id, member_id, score').in('criterion_id', criteriaIds)
       : { data: [] };
 
     const criteriaByRound = {};
@@ -66,6 +68,45 @@ export default async function AdminPage() {
       const p = ((progress[a.round_id] ??= {})[a.member_id] ??= { assigned: 0, done: 0 });
       p.assigned += 1;
       if (done) p.done += 1;
+    });
+
+    // Grader averages: each reviewer's mean score per round vs. the club's mean
+    const nameOf = Object.fromEntries((allMembers || []).map((m) => [m.id, m.full_name || m.email]));
+    graderTables = (roundRows || [])
+      .map((r) => {
+        const rs = (scores || []).filter((s) => roundOfCriterion[s.criterion_id] === r.id);
+        if (!rs.length) return null;
+        const clubAvg = rs.reduce((n, s) => n + Number(s.score), 0) / rs.length;
+        const byMember = {};
+        rs.forEach((s) => {
+          const m = (byMember[s.member_id] ??= { total: 0, count: 0, applicants: new Set() });
+          m.total += Number(s.score);
+          m.count += 1;
+          m.applicants.add(s.applicant_id);
+        });
+        const rows = Object.entries(byMember)
+          .map(([id, m]) => ({ id, name: nameOf[id] || 'Unknown', avg: m.total / m.count, diff: m.total / m.count - clubAvg, applicants: m.applicants.size, scores: m.count }))
+          .sort((a, b) => b.avg - a.avg);
+        return { round: r, clubAvg, rows };
+      })
+      .filter(Boolean);
+
+    // Conflicts, with how many reviewers each conflicted applicant has left in open rounds
+    const { data: cRows } = await supabase
+      .from('conflicts')
+      .select('applicant_id, member_id, created_at, applicants!inner(full_name, cycle_id)')
+      .eq('applicants.cycle_id', cycle.id)
+      .order('created_at', { ascending: false });
+    const openRoundIds = (roundRows || []).filter((r) => r.phase === 'setup' || r.phase === 'scoring').map((r) => r.id);
+    conflictRows = (cRows || []).map((c) => {
+      const reviewerCounts = openRoundIds
+        .map((rid) => {
+          const n = (assignments || []).filter((a) => a.round_id === rid && a.applicant_id === c.applicant_id).length;
+          const inRound = (ra || []).some((x) => x.round_id === rid && x.applicant_id === c.applicant_id);
+          return inRound && (assignments || []).some((a) => a.round_id === rid) ? { round: roundRows.find((r) => r.id === rid).name, n } : null;
+        })
+        .filter(Boolean);
+      return { ...c, memberName: nameOf[c.member_id] || 'Unknown', reviewerCounts };
     });
 
     rounds = (roundRows || []).map((r) => ({
@@ -124,6 +165,77 @@ export default async function AdminPage() {
                 <p className="muted">Add members to the roster first.</p>
               ) : (
                 <DistributeForm rounds={rounds} members={activeMembers} progress={progress} />
+              )}
+            </section>
+            <section className="panel">
+              <h2>Grader averages</h2>
+              <p className="muted panel-sub">
+                How each reviewer scores compared with the club. For reference only; no scores are adjusted.
+              </p>
+              {graderTables.length === 0 ? (
+                <p className="muted">No scores entered yet.</p>
+              ) : (
+                graderTables.map((t) => (
+                  <div key={t.round.id} className="grader-block">
+                    <h3>
+                      {t.round.name} <span className="muted">club average {t.clubAvg.toFixed(2)}</span>
+                    </h3>
+                    <div className="table-wrap">
+                      <table className="table">
+                        <thead>
+                          <tr>
+                            <th scope="col">Reviewer</th>
+                            <th scope="col" className="num">Average</th>
+                            <th scope="col" className="num">vs. club</th>
+                            <th scope="col" className="num">Applicants scored</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {t.rows.map((r) => (
+                            <tr key={r.id}>
+                              <td>{r.name}</td>
+                              <td className="num">{r.avg.toFixed(2)}</td>
+                              <td className={`num ${r.diff > 0.25 ? 'diff-up' : r.diff < -0.25 ? 'diff-down' : 'muted'}`}>
+                                {r.diff >= 0 ? '+' : ''}
+                                {r.diff.toFixed(2)}
+                              </td>
+                              <td className="num">{r.applicants}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ))
+              )}
+            </section>
+
+            <section className="panel">
+              <h2>Conflicts of interest</h2>
+              <p className="muted panel-sub">
+                Members who flagged a conflict are removed as that applicant&apos;s reviewer and sit out their vote.
+              </p>
+              {conflictRows.length === 0 ? (
+                <p className="muted">No conflicts flagged.</p>
+              ) : (
+                <ul className="roster">
+                  {conflictRows.map((c) => {
+                    const thin = c.reviewerCounts.filter((rc) => rc.n === 0);
+                    return (
+                      <li key={`${c.applicant_id}-${c.member_id}`} className="roster-row">
+                        <span className="roster-name">
+                          <a href={`/applicants/${c.applicant_id}`}>{c.applicants.full_name}</a>
+                        </span>
+                        <span className="roster-email">Flagged by {c.memberName}</span>
+                        <span className={thin.length ? 'form-error' : 'muted'}>
+                          {thin.length
+                            ? `No reviewer left in ${thin.map((t) => t.round).join(', ')}; reassign reviewers`
+                            : c.reviewerCounts.map((rc) => `${rc.n} reviewer${rc.n === 1 ? '' : 's'} in ${rc.round}`).join(', ')}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
               )}
             </section>
           </>

@@ -294,3 +294,45 @@ h3 { font-size: 14px; font-weight: 600; }
   .round-meta { grid-column: 1 / -1; }
   .roster-row { grid-template-columns: 1fr; gap: 2px; }
 }
+
+/* ---------- Hard vouch, conflicts, next in queue, grader table ---------- */
+.vouch { display: flex; flex-direction: column; gap: 10px; }
+.vouch-count { margin: 0; display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--evergreen-deep); }
+.vouch-mark { width: 12px; height: 12px; background: var(--evergreen); border-radius: 1px 8px 1px 8px; }
+.btn-vouch { background: var(--surface); color: var(--evergreen-deep); border-color: var(--evergreen); align-self: flex-start; }
+.btn-vouch:hover { background: var(--sage); }
+.vouch-mine { background: var(--sage); border-radius: var(--radius-s); padding: 12px; display: flex; flex-direction: column; gap: 6px; }
+.vouch-mine-title { margin: 0; font-weight: 600; font-size: 14px; color: var(--evergreen-deep); }
+.vouch-reason { font-size: 14px; }
+.vouch-admin { border: 1px dashed var(--gold); border-radius: var(--radius-s); padding: 12px; background: #fffbf2; }
+.vouch-admin h3 { margin-bottom: 8px; }
+.vouch-admin ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.vouch-admin li { display: flex; flex-direction: column; gap: 2px; font-size: 14px; }
+.vouch-pill {
+  font-size: 12px; font-weight: 600; color: var(--evergreen-deep); background: var(--sage);
+  border-radius: 999px; padding: 1px 8px; white-space: nowrap;
+}
+.tab-sep { width: 1px; background: var(--line); margin: 4px 6px; }
+.tab-vouch:not(.tab-on) { color: var(--evergreen-deep); }
+
+.conflict { border-top: 1px solid var(--line); padding-top: 16px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+.conflict-on { margin: 0; font-weight: 600; color: var(--danger); }
+.conflict-sub { margin: 0; font-size: 13px; }
+.link-btn-quiet { color: var(--muted); align-self: flex-start; }
+.link-btn-quiet:hover { color: var(--danger); }
+
+.next-queue { border-top: 1px solid var(--line); padding-top: 14px; display: flex; flex-direction: column; gap: 6px; }
+.next-queue .btn { text-align: center; text-decoration: none; }
+.next-left, .next-done { margin: 0; font-size: 13px; text-align: center; }
+
+.grader-block + .grader-block { margin-top: 24px; }
+.grader-block h3 { margin-bottom: 10px; display: flex; gap: 10px; align-items: baseline; }
+.grader-block h3 .muted { font-weight: 400; font-size: 13px; }
+.table-wrap { overflow-x: auto; }
+.table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.table th { text-align: left; font-weight: 500; color: var(--muted); font-size: 13px; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+.table td { padding: 10px 12px; border-bottom: 1px solid var(--line); }
+.table tr:last-child td { border-bottom: none; }
+.table .num { text-align: right; font-variant-numeric: tabular-nums; }
+.diff-up { color: var(--evergreen); font-weight: 600; }
+.diff-down { color: var(--danger); font-weight: 600; }

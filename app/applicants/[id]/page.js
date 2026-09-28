@@ -5,6 +5,8 @@ import NotOnRoster from '@/components/NotOnRoster';
 import Avatar from '@/components/Avatar';
 import StageTrack from '@/components/StageTrack';
 import ScorePanel from '@/components/ScorePanel';
+import VouchBox from '@/components/VouchBox';
+import ConflictButton from '@/components/ConflictButton';
 import { getSession, signedUrls } from '@/lib/session';
 import { withProgress } from '@/lib/applicants';
 
@@ -72,6 +74,53 @@ export default async function ApplicantPage({ params }) {
   }
   const waitingRounds = myRounds.filter((r) => r.phase === 'setup');
 
+  // "Next in queue": the next applicant in each open round that this member hasn't finished scoring
+  if (panels.length) {
+    const openIds = panels.map((p) => p.round.id);
+    const [{ data: queueRows }, { data: allCriteria }] = await Promise.all([
+      supabase.from('assignments').select('round_id, applicant_id').eq('member_id', member.id).in('round_id', openIds),
+      supabase.from('criteria').select('id, round_id').in('round_id', openIds),
+    ]);
+    const queueIds = [...new Set((queueRows || []).map((q) => q.applicant_id))];
+    const { data: queueNames } = queueIds.length
+      ? await supabase.from('applicants').select('id, full_name').in('id', queueIds)
+      : { data: [] };
+    const nameById = Object.fromEntries((queueNames || []).map((a) => [a.id, a.full_name]));
+    const critIds = (allCriteria || []).map((c) => c.id);
+    const { data: myAllScores } = critIds.length
+      ? await supabase.from('scores').select('criterion_id, applicant_id').eq('member_id', member.id).in('criterion_id', critIds)
+      : { data: [] };
+    const roundOfCrit = Object.fromEntries((allCriteria || []).map((c) => [c.id, c.round_id]));
+    const done = {};
+    (myAllScores || []).forEach((sc) => {
+      const k = `${roundOfCrit[sc.criterion_id]}|${sc.applicant_id}`;
+      done[k] = (done[k] || 0) + 1;
+    });
+    const need = {};
+    (allCriteria || []).forEach((c) => (need[c.round_id] = (need[c.round_id] || 0) + 1));
+    panels = panels.map((p) => {
+      const mine = (queueRows || [])
+        .filter((q) => q.round_id === p.round.id)
+        .map((q) => ({ id: q.applicant_id, name: nameById[q.applicant_id] || '' }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+      const unfinished = mine.filter((q) => q.id !== id && (done[`${p.round.id}|${q.id}`] || 0) < need[p.round.id]);
+      const after = unfinished.find((q) => q.name.localeCompare(applicant.full_name) > 0) || unfinished[0];
+      return { ...p, next: after ? { id: after.id, name: after.name, remaining: unfinished.length } : null };
+    });
+  }
+
+  const [{ data: myVouch }, { data: counts }, { data: myConflict }, adminVouchRes] = await Promise.all([
+    supabase.from('vouches').select('reason').eq('applicant_id', id).eq('member_id', member.id).maybeSingle(),
+    supabase.rpc('vouch_counts', { p_cycle: applicant.cycle_id }),
+    supabase.from('conflicts').select('applicant_id').eq('applicant_id', id).eq('member_id', member.id).maybeSingle(),
+    isAdmin
+      ? supabase.from('vouches').select('reason, members(full_name, email)').eq('applicant_id', id).order('created_at')
+      : Promise.resolve({ data: null }),
+  ]);
+  const vouchCount = (counts || []).find((c) => c.applicant_id === id)?.vouch_count || 0;
+  const adminVouches = (adminVouchRes.data || []).map((v) => ({ name: v.members?.full_name || v.members?.email, reason: v.reason }));
+  const firstName = applicant.full_name.split(' ')[0];
+
   const [withStage] = withProgress([applicant], rounds || [], roundApplicants || []);
   const urls = await signedUrls(supabase, [applicant.headshot_path, applicant.resume_path]);
   const headshot = urls[applicant.headshot_path];
@@ -98,6 +147,15 @@ export default async function ApplicantPage({ params }) {
               {applicant.pronouns && <p className="profile-pronouns">{applicant.pronouns}</p>}
             </div>
 
+            <VouchBox
+              applicantId={id}
+              memberId={member.id}
+              firstName={firstName}
+              myVouch={myVouch}
+              count={Number(vouchCount)}
+              adminVouches={isAdmin ? adminVouches : null}
+            />
+
             <StageTrack rounds={rounds || []} reachedIndex={withStage.reachedIndex} status={applicant.status} showLabels />
 
             <dl className="facts">
@@ -118,6 +176,8 @@ export default async function ApplicantPage({ params }) {
                 </div>
               )}
             </dl>
+
+            <ConflictButton applicantId={id} firstName={firstName} hasConflict={!!myConflict} />
 
             {isAdmin && (
               <section className="private" aria-label="Admin-only details">
@@ -164,6 +224,7 @@ export default async function ApplicantPage({ params }) {
                   initialNotes={p.notes}
                   applicantId={id}
                   memberId={member.id}
+                  next={p.next}
                 />
               ))}
               {waitingRounds.map((r) => (

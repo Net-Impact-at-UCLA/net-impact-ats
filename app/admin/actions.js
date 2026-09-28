@@ -100,7 +100,13 @@ export async function distributeReviewers(_prev, formData) {
     .map((r) => r.applicant_id);
   if (applicantIds.length === 0) return { error: 'This round has no active applicants to assign.' };
 
-  const { plan, load } = distribute(applicantIds, memberIds, perApplicant);
+  const { data: conflictRows } = await supabase
+    .from('conflicts')
+    .select('applicant_id, member_id')
+    .in('applicant_id', applicantIds);
+  const blocked = new Set((conflictRows || []).map((c) => `${c.applicant_id}|${c.member_id}`));
+
+  const { plan, load, short } = distribute(applicantIds, memberIds, perApplicant, blocked);
 
   const { error: clearError } = await supabase.from('assignments').delete().eq('round_id', roundId);
   if (clearError) return { error: `Couldn't clear old assignments: ${clearError.message}` };
@@ -117,6 +123,10 @@ export async function distributeReviewers(_prev, formData) {
   const hi = Math.max(...loads);
   const each = Math.min(perApplicant, memberIds.length);
   return {
-    ok: `Assigned ${applicantIds.length} applicants to ${memberIds.length} reviewers, ${each} per applicant. Each reviewer has ${lo === hi ? lo : `${lo} to ${hi}`}.`,
+    ok:
+      `Assigned ${applicantIds.length} applicants to ${memberIds.length} reviewers, ${each} per applicant. Each reviewer has ${lo === hi ? lo : `${lo} to ${hi}`}.` +
+      (short.length
+        ? ` ${short.length} applicant${short.length === 1 ? ' has' : 's have'} fewer reviewers because of conflicts; select more reviewers to fill ${short.length === 1 ? 'it' : 'them'}.`
+        : ''),
   };
 }
