@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/session';
 import { distribute } from '@/lib/distribute';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 const EMAIL = /^[^\s@,]+@[^\s@,]+\.[^\s@,]+$/;
 
@@ -169,4 +170,33 @@ export async function applyCutoff(formData) {
   revalidatePath(`/rounds/${roundId}`);
   revalidatePath('/admin');
   revalidatePath('/');
+}
+
+// Removes every assignment in a round, plus any scores and notes entered for it.
+// Only before voting opens (scores are deliberation context after that).
+export async function clearAssignments(_prev, formData) {
+  const { supabase } = await requireAdmin();
+  const roundId = String(formData.get('roundId'));
+  const { data: round } = await supabase.from('rounds').select('id, name, phase').eq('id', roundId).maybeSingle();
+  if (!round) return { error: 'Round not found.' };
+  if (!['setup', 'scoring'].includes(round.phase)) {
+    return { error: `${round.name} is past scoring, so its assignments can't be cleared.` };
+  }
+
+  // Admin-verified above; the full-access client is needed to remove other members' scores and notes.
+  const db = createAdminClient();
+  const { data: crits } = await db.from('criteria').select('id').eq('round_id', roundId);
+  const critIds = (crits || []).map((c) => c.id);
+  if (critIds.length) {
+    const { error } = await db.from('scores').delete().in('criterion_id', critIds);
+    if (error) return { error: `Couldn't clear scores: ${error.message}` };
+  }
+  const { error: nErr } = await db.from('notes').delete().eq('round_id', roundId);
+  if (nErr) return { error: `Couldn't clear notes: ${nErr.message}` };
+  const { error: aErr } = await db.from('assignments').delete().eq('round_id', roundId);
+  if (aErr) return { error: `Couldn't clear assignments: ${aErr.message}` };
+
+  revalidatePath('/admin');
+  revalidatePath('/');
+  return { ok: `Cleared all assignments${critIds.length ? ', scores, and notes' : ''} for ${round.name}. Nobody is assigned now.` };
 }

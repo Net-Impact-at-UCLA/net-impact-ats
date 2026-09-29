@@ -1,13 +1,15 @@
 'use client';
 
-import { useActionState, useMemo, useState } from 'react';
-import { distributeReviewers } from '@/app/admin/actions';
+import { startTransition, useActionState, useMemo, useState } from 'react';
+import { distributeReviewers, clearAssignments } from '@/app/admin/actions';
 
 // rounds: [{ id, name, phase, activeCount, assignedCount, scoredCount }]
 // members: [{ id, full_name, email }]
 // progress: { [roundId]: { [memberId]: { assigned, done } } }
 export default function DistributeForm({ rounds, members, progress }) {
   const [state, action, pending] = useActionState(distributeReviewers, null);
+  const [clearState, clearAction, clearing] = useActionState(clearAssignments, null);
+  const [lastRun, setLastRun] = useState(null); // which message to show
   const [roundId, setRoundId] = useState(rounds[0]?.id);
   const [selected, setSelected] = useState(() => new Set());
   const [perApplicant, setPerApplicant] = useState(2);
@@ -38,19 +40,34 @@ export default function DistributeForm({ rounds, members, progress }) {
     });
   }
 
-  function confirmReplace(e) {
+  // Submit manually so the checkboxes keep their state (automatic form reset would clear them)
+  function submit(e) {
+    e.preventDefault();
     if (round?.assignedCount > 0 && !topUp) {
       const extra = round.scoredCount > 0
         ? ` ${round.scoredCount} scores have already been entered; reviewers who lose an applicant can no longer edit those scores.`
         : '';
-      if (!window.confirm(`This replaces the current assignments for ${round.name}.${extra} Continue?`)) {
-        e.preventDefault();
-      }
+      if (!window.confirm(`This replaces the current assignments for ${round.name}.${extra} Continue?`)) return;
     }
+    const fd = new FormData(e.currentTarget);
+    setLastRun('assign');
+    startTransition(() => action(fd));
   }
 
+  function clearAll() {
+    const lost = round.scoredCount > 0 ? ` This also deletes ${round.scoredCount} score${round.scoredCount === 1 ? '' : 's'} and any notes already entered.` : '';
+    if (!window.confirm(`Clear every reviewer assignment for ${round.name}?${lost} This can't be undone.`)) return;
+    const fd = new FormData();
+    fd.set('roundId', roundId);
+    setLastRun('clear');
+    startTransition(() => clearAction(fd));
+  }
+
+  const shown = lastRun === 'clear' ? clearState : state;
+  const canClear = round?.assignedCount > 0 && ['setup', 'scoring'].includes(round?.phase);
+
   return (
-    <form action={action} onSubmit={confirmReplace} className="stack">
+    <form onSubmit={submit} className="stack">
       <div className="form-grid">
         <label className="field">
           <span className="field-label">Round</span>
@@ -128,8 +145,13 @@ export default function DistributeForm({ rounds, members, progress }) {
         <button className="btn btn-primary" disabled={pending || selected.size === 0}>
           {pending ? 'Assigning…' : topUp ? 'Assign new applicants' : round?.assignedCount ? 'Reassign everyone' : 'Assign reviewers'}
         </button>
-        {state?.ok && <p className="form-ok" role="status">{state.ok}</p>}
-        {state?.error && <p className="form-error" role="alert">{state.error}</p>}
+        {canClear && (
+          <button type="button" className="btn btn-danger" onClick={clearAll} disabled={clearing || pending}>
+            {clearing ? 'Clearing…' : 'Clear all assignments'}
+          </button>
+        )}
+        {shown?.ok && <p className="form-ok" role="status">{shown.ok}</p>}
+        {shown?.error && <p className="form-error" role="alert">{shown.error}</p>}
       </div>
     </form>
   );
