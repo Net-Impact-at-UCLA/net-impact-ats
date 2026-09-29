@@ -283,9 +283,10 @@ export default async function AdminPage() {
             <div>
               <h2>Export results</h2>
               <p className="muted panel-sub">
-                Everything from {cycle.name} in one Excel file: a summary, every score, note, vote, vouch, and conflict, and
-                applicants&apos; answers. Contact info and extenuating circumstances are on a separate red &quot;Private&quot; tab, so
-                delete that tab before sharing the file. Download one after each deliberation as a backup.
+                Everything from {cycle.name} in one Excel file: a summary, an &quot;Advancing&quot; list of who moves on from the most
+                recent cutoff (with contact info, for sending invites), every score, note, vote, vouch, and conflict, and
+                applicants&apos; answers. The red tabs (Advancing, Private) contain contact info, so delete them before sharing the
+                file outside the exec board. Download one after each deliberation as a backup.
               </p>
             </div>
             <a href="/admin/export" className="btn btn-primary" download>Download results (.xlsx)</a>
