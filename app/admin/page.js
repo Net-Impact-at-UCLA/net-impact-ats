@@ -38,7 +38,7 @@ export default async function AdminPage() {
   if (cycle) {
     const { data: roundRows } = await supabase
       .from('rounds')
-      .select('id, name, phase, sort_order')
+      .select('id, name, stage, phase, sort_order')
       .eq('cycle_id', cycle.id)
       .order('sort_order');
     const roundIds = (roundRows || []).map((r) => r.id);
@@ -150,7 +150,9 @@ export default async function AdminPage() {
                     </span>
                     <span className="round-actions">
                       {r.phase === 'setup' && (
-                        <PhaseButton id={r.id} to="scoring" primary disabled={r.assignedCount === 0}>Open scoring</PhaseButton>
+                        <PhaseButton id={r.id} to="scoring" primary disabled={r.assignedCount === 0 && r.stage !== 'coffee_chat'}>
+                          Open scoring
+                        </PhaseButton>
                       )}
                       {r.phase === 'scoring' && (
                         <>
@@ -175,7 +177,7 @@ export default async function AdminPage() {
                         </a>
                       )}
                     </span>
-                    {r.unassignedCount > 0 && r.assignedCount > 0 && ['setup', 'scoring'].includes(r.phase) && (
+                    {r.unassignedCount > 0 && r.assignedCount > 0 && r.stage !== 'coffee_chat' && ['setup', 'scoring'].includes(r.phase) && (
                       <span className="round-warn">
                         {r.unassignedCount} applicant{r.unassignedCount === 1 ? '' : 's'} without a reviewer. Use Assign reviewers below.
                       </span>

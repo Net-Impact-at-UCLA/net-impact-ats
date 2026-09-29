@@ -163,7 +163,7 @@ export async function applyCutoff(formData) {
   const { supabase } = await requireAdmin();
   const roundId = String(formData.get('roundId'));
   const cutoff = Number(formData.get('cutoff'));
-  if (!(cutoff >= 1 && cutoff <= 5)) return;
+  if (!(cutoff >= 0 && cutoff <= 5)) return;
   const { error } = await supabase.rpc('apply_cutoff', { p_round: roundId, p_cutoff: Math.round(cutoff * 100) / 100 });
   if (error) throw new Error(`Couldn't apply the cutoff: ${error.message}`);
   revalidatePath(`/rounds/${roundId}`);

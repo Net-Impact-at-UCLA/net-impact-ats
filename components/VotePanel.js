@@ -13,23 +13,26 @@ export default function VotePanel({ round, applicantId, memberId, initial, confl
   const [recused, setRecused] = useState(!!initial?.recused);
   const [status, setStatus] = useState(null);
 
+  // next = { stars, recused } to save, or { withdraw: true } to clear the vote
   async function save(next) {
     const prev = { stars, recused };
-    setStars(next.stars);
-    setRecused(next.recused);
+    setStars(next.withdraw ? null : next.stars);
+    setRecused(next.withdraw ? false : next.recused);
     setStatus({ kind: 'saving', text: 'Saving…' });
-    const { error } = await supabase
-      .from('votes')
-      .upsert(
-        { round_id: round.id, applicant_id: applicantId, member_id: memberId, stars: next.stars, recused: next.recused },
-        { onConflict: 'round_id,applicant_id,member_id' }
-      );
+    const { error } = next.withdraw
+      ? await supabase.from('votes').delete().eq('round_id', round.id).eq('applicant_id', applicantId).eq('member_id', memberId)
+      : await supabase
+          .from('votes')
+          .upsert(
+            { round_id: round.id, applicant_id: applicantId, member_id: memberId, stars: next.stars, recused: next.recused },
+            { onConflict: 'round_id,applicant_id,member_id' }
+          );
     if (error) {
       setStars(prev.stars);
       setRecused(prev.recused);
       setStatus({ kind: 'error', text: 'Your vote didn’t save. Check that voting is still open, then try again.' });
     } else {
-      setStatus({ kind: 'saved', text: next.recused ? 'Recused' : 'Vote saved' });
+      setStatus({ kind: 'saved', text: next.withdraw ? 'Vote withdrawn' : next.recused ? 'Recused' : 'Vote saved' });
     }
   }
 
@@ -48,13 +51,13 @@ export default function VotePanel({ round, applicantId, memberId, initial, confl
         <>
           <p className="muted vote-help">How strongly should they advance? Your vote is private until results are released.</p>
           <div className={`vote-stars ${recused ? 'vote-stars-off' : ''}`}>
-            <StarInput label="Your vote" value={recused ? null : stars} min={1} max={5} onChange={(v) => save({ stars: v, recused: false })} />
+            <StarInput label="Your vote" value={recused ? null : stars} min={0} max={5} onChange={(v) => save({ stars: v, recused: false })} />
           </div>
           <label className="check recuse">
             <input
               type="checkbox"
               checked={recused}
-              onChange={(e) => save(e.target.checked ? { stars: null, recused: true } : { stars: null, recused: false })}
+              onChange={(e) => save(e.target.checked ? { stars: null, recused: true } : { withdraw: true })}
             />
             <span>Recuse me from this vote</span>
           </label>

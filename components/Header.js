@@ -2,18 +2,18 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 
 export default async function Header({ member, cycleName }) {
-  // Show "My table" while coffee chat scoring is open
+  // "My table" while coffee chat scoring is open; "Deliberations" while any round is voting
   let tableOpen = false;
+  let votingOpen = false;
   if (member) {
     const supabase = await createClient();
     const { data } = await supabase
       .from('rounds')
-      .select('id, cycles!inner(is_active)')
-      .eq('stage', 'coffee_chat')
-      .eq('phase', 'scoring')
+      .select('stage, phase, cycles!inner(is_active)')
       .eq('cycles.is_active', true)
-      .limit(1);
-    tableOpen = (data || []).length > 0;
+      .in('phase', ['scoring', 'voting']);
+    tableOpen = (data || []).some((r) => r.stage === 'coffee_chat' && r.phase === 'scoring');
+    votingOpen = (data || []).some((r) => r.phase === 'voting');
   }
 
   return (
@@ -27,6 +27,7 @@ export default async function Header({ member, cycleName }) {
         <nav className="topnav">
           <Link href="/">Applicants</Link>
           {tableOpen && <Link href="/table" className="topnav-table">My table</Link>}
+          {votingOpen && <Link href="/deliberate" className="topnav-table">Deliberations</Link>}
           <Link href="/rounds">Rounds</Link>
           {member?.role === 'admin' && <Link href="/admin">Admin</Link>}
         </nav>

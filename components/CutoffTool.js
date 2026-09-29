@@ -15,7 +15,7 @@ export default function CutoffTool({ roundId, roundName, nextRoundName, values, 
   });
 
   const advancing = useMemo(() => scored.filter((v) => v >= cutoff - 1e-9).length, [scored, cutoff]);
-  const pctOf = (v) => `${((v - 1) / 4) * 100}%`;
+  const pctOf = (v) => `${(v / 5) * 100}%`;
   const bars = [...values].sort((a, b) => (b.avg ?? -1) - (a.avg ?? -1));
 
   return (
@@ -31,7 +31,7 @@ export default function CutoffTool({ roundId, roundName, nextRoundName, values, 
 
       <div className="cutoff-chart" role="img" aria-label={`Anonymized average votes for ${values.length} applicants, highest first. Cutoff at ${cutoff.toFixed(2)}.`}>
         <div className="cutoff-yaxis" aria-hidden="true">
-          {[5, 4, 3, 2, 1].map((t) => (
+          {[5, 4, 3, 2, 1, 0].map((t) => (
             <span key={t} style={{ bottom: pctOf(t) }}>{t}</span>
           ))}
         </div>
@@ -54,7 +54,7 @@ export default function CutoffTool({ roundId, roundName, nextRoundName, values, 
         <span className="field-label">Move the cutoff</span>
         <input
           type="range"
-          min={1}
+          min={0}
           max={5}
           step={0.05}
           value={cutoff}
@@ -64,13 +64,13 @@ export default function CutoffTool({ roundId, roundName, nextRoundName, values, 
         <input
           type="number"
           className="input input-narrow"
-          min={1}
+          min={0}
           max={5}
           step={0.05}
           value={cutoff}
           onChange={(e) => {
             const v = Number(e.target.value);
-            if (v >= 1 && v <= 5) setCutoff(v);
+            if (v >= 0 && v <= 5) setCutoff(v);
           }}
           aria-label="Cutoff value"
         />

@@ -109,6 +109,7 @@ export default async function Home({ searchParams }) {
         const roundName = votingRounds.find((r) => r.id === x.round_id)?.name;
         return {
           key: `v-${x.round_id}-${x.applicant_id}`,
+          href: '/deliberate',
           applicantId: x.applicant_id,
           name: byIdV[x.applicant_id].full_name,
           done: !!v,
