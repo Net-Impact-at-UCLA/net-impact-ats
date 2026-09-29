@@ -278,6 +278,20 @@ export default async function AdminPage() {
           </section>
         )}
 
+        {cycle && (
+          <section className="panel export-panel">
+            <div>
+              <h2>Export results</h2>
+              <p className="muted panel-sub">
+                Everything from {cycle.name} in one Excel file: a summary, every score, note, vote, vouch, and conflict, and
+                applicants&apos; answers. Contact info and extenuating circumstances are on a separate red &quot;Private&quot; tab, so
+                delete that tab before sharing the file. Download one after each deliberation as a backup.
+              </p>
+            </div>
+            <a href="/admin/export" className="btn btn-primary" download>Download results (.xlsx)</a>
+          </section>
+        )}
+
         <section className="panel">
           <h2>Roster</h2>
           <p className="muted panel-sub">

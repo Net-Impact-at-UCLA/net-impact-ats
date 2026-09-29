@@ -547,3 +547,7 @@ h3 { font-size: 14px; font-weight: 600; }
 .present-review-scores { display: flex; gap: 16px; font-size: 16px; color: var(--muted); }
 .present-review-scores strong { color: var(--ink); font-size: 20px; margin-left: 4px; }
 .present-note { margin: 0; font-size: 19px; line-height: 1.5; white-space: pre-wrap; }
+.export-panel { display: flex; justify-content: space-between; align-items: center; gap: 24px; flex-wrap: wrap; }
+.export-panel > div { flex: 1; min-width: 280px; }
+.export-panel .panel-sub { margin-bottom: 0; max-width: 70ch; }
+.export-panel .btn { text-decoration: none; white-space: nowrap; }
