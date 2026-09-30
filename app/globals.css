@@ -570,3 +570,21 @@ h3 { font-size: 14px; font-weight: 600; }
 .round-list .round-name { color: var(--ink); text-decoration: none; }
 .round-list .round-name:hover { text-decoration: underline; }
 @media (max-width: 760px) { .step-label { display: none; } .step-now .step-label { display: inline; } }
+
+/* Profile: applicant on top, scoring underneath at full width */
+.profile-grid.has-score { grid-template-columns: 300px minmax(0, 1fr); }
+.profile-grid.has-score .profile-score { grid-column: 1 / -1; position: static; max-height: none; overflow: visible; order: 0; }
+.profile-score .score-panel { padding: 24px 28px; }
+.profile-score .score-head h2 { font-size: 18px; }
+.profile-score .criteria { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); column-gap: 40px; }
+.profile-score .criterion, .profile-score .criterion:first-child { border-top: 1px solid var(--line); padding: 12px 0; }
+.profile-score .criterion-name { font-size: 15px; }
+.profile-score .star, .profile-score .star svg { width: 28px; height: 28px; }
+.profile-score .star-fill { height: 28px; }
+.profile-score .next-queue { flex-direction: row; align-items: center; gap: 16px; flex-wrap: wrap; }
+.profile-score .next-queue .btn-wide { width: auto; padding: 12px 24px; }
+.profile-score .next-left, .profile-score .next-done { text-align: left; }
+@media (max-width: 860px) {
+  .profile-grid.has-score { grid-template-columns: 1fr; }
+  .profile-score .criteria { grid-template-columns: 1fr; }
+}
