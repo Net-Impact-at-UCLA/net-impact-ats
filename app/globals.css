@@ -588,3 +588,12 @@ h3 { font-size: 14px; font-weight: 600; }
   .profile-grid.has-score { grid-template-columns: 1fr; }
   .profile-score .criteria { grid-template-columns: 1fr; }
 }
+
+/* Extra reviewers + weights */
+.badge-extra { background: #fdf3de; color: #7a5410; }
+.weight { font: inherit; font-size: 12px; padding: 2px 4px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); color: var(--evergreen-deep); }
+.self-review { background: var(--surface); border: 1px dashed var(--evergreen); border-radius: var(--radius-m); padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+.self-review h2 { font-size: 17px; }
+.self-review p { margin: 4px 0 0; font-size: 14px; }
+.self-review-note { margin: 0 0 8px; font-size: 13px; color: var(--muted); }
+.score-wrap { display: flex; flex-direction: column; }

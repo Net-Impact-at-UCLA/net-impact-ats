@@ -9,6 +9,7 @@ import VouchBox from '@/components/VouchBox';
 import ConflictButton from '@/components/ConflictButton';
 import RemoveApplicantButton from '@/components/RemoveApplicantButton';
 import VotePanel from '@/components/VotePanel';
+import SelfReviewButton from '@/components/SelfReviewButton';
 import ReviewSummary from '@/components/ReviewSummary';
 import { getSession, signedUrls } from '@/lib/session';
 import { withProgress } from '@/lib/applicants';
@@ -27,7 +28,7 @@ export default async function ApplicantPage({ params }) {
 
   const isAdmin = member.role === 'admin';
   const [{ data: rounds }, { data: roundApplicants }, privateRes] = await Promise.all([
-    supabase.from('rounds').select('id, name, phase, sort_order').eq('cycle_id', applicant.cycle_id).order('sort_order'),
+    supabase.from('rounds').select('id, name, stage, phase, sort_order').eq('cycle_id', applicant.cycle_id).order('sort_order'),
     supabase.from('round_applicants').select('round_id, applicant_id').eq('applicant_id', id),
     isAdmin
       ? supabase.from('applicant_private').select('*').eq('applicant_id', id).maybeSingle()
@@ -38,7 +39,7 @@ export default async function ApplicantPage({ params }) {
   // Rounds this member is assigned to review for this applicant
   const { data: myAssignments } = await supabase
     .from('assignments')
-    .select('round_id')
+    .select('*')
     .eq('applicant_id', id)
     .eq('member_id', member.id);
   const myRoundIds = (myAssignments || []).map((a) => a.round_id);
@@ -76,6 +77,17 @@ export default async function ApplicantPage({ params }) {
     });
   }
   const waitingRounds = myRounds.filter((r) => r.phase === 'setup');
+
+  // "Review this applicant": admins and extra reviewers, for the applicant's current
+  // setup/scoring round (not coffee chats, which use My table), if not already a reviewer.
+  const canSelfReview = member.role === 'admin' || member.extra_reviewer;
+  const inRoundIds = (roundApplicants || []).map((ra) => ra.round_id);
+  const selfReviewRound = canSelfReview && applicant.status === 'active'
+    ? (rounds || [])
+        .filter((r) => inRoundIds.includes(r.id) && ['setup', 'scoring'].includes(r.phase) && r.stage !== 'coffee_chat')
+        .sort((a, b) => b.sort_order - a.sort_order)[0]
+    : null;
+  const selfAddedRoundIds = (myAssignments || []).filter((a) => a.self_added).map((a) => a.round_id);
 
   // "Next in queue": the next applicant in each open round that this member hasn't finished scoring
   if (panels.length) {
@@ -288,6 +300,17 @@ export default async function ApplicantPage({ params }) {
             <Answer title="Something not on their resume" body={applicant.fun_fact} />
           </div>
 
+          {selfReviewRound && !myRoundIds.includes(selfReviewRound.id) && (
+            <aside className="profile-score">
+              <SelfReviewButton
+                roundId={selfReviewRound.id}
+                roundName={selfReviewRound.name}
+                applicantId={id}
+                memberId={member.id}
+                firstName={firstName}
+              />
+            </aside>
+          )}
           {(panels.length > 0 || waitingRounds.length > 0 || vote) && (
             <aside className="profile-score">
               {vote && (
@@ -303,6 +326,10 @@ export default async function ApplicantPage({ params }) {
                 />
               )}
               {panels.map((p) => (
+                <div key={`wrap-${p.round.id}`} className="score-wrap">
+                {selfAddedRoundIds.includes(p.round.id) && (
+                  <SelfReviewButton roundId={p.round.id} roundName={p.round.name} applicantId={id} memberId={member.id} firstName={firstName} selfAdded />
+                )}
                 <ScorePanel
                   key={p.round.id}
                   round={p.round}
@@ -313,6 +340,7 @@ export default async function ApplicantPage({ params }) {
                   memberId={member.id}
                   next={p.next}
                 />
+                </div>
               ))}
               {waitingRounds.map((r) => (
                 <section key={r.id} className="score-panel score-waiting">

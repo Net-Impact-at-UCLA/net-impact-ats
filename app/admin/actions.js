@@ -65,6 +65,8 @@ export async function updateMember(formData) {
     restore: { is_active: true },
     make_admin: { role: 'admin' },
     make_member: { role: 'member' },
+    make_extra: { extra_reviewer: true },
+    remove_extra: { extra_reviewer: false },
   }[action];
   if (!changes) return;
 
@@ -96,6 +98,11 @@ export async function distributeReviewers(_prev, formData) {
   const memberIds = formData.getAll('memberIds').map(String);
   const perApplicant = Math.max(1, parseInt(formData.get('perApplicant'), 10) || 1);
   const onlyNew = formData.get('mode') === 'new';
+  const weights = {};
+  memberIds.forEach((id) => {
+    const w = parseInt(formData.get(`weight_${id}`), 10);
+    if (w >= 2 && w <= 5) weights[id] = w;
+  });
 
   if (memberIds.length === 0) return { error: 'Select at least one member.' };
 
@@ -126,7 +133,7 @@ export async function distributeReviewers(_prev, formData) {
     .in('applicant_id', applicantIds);
   const blocked = new Set((conflictRows || []).map((c) => `${c.applicant_id}|${c.member_id}`));
 
-  const { plan, load, short } = distribute(applicantIds, memberIds, perApplicant, blocked, Math.random, initialLoad);
+  const { plan, load, short } = distribute(applicantIds, memberIds, perApplicant, blocked, Math.random, initialLoad, weights);
 
   if (!onlyNew) {
     const { error: clearError } = await supabase.from('assignments').delete().eq('round_id', roundId);

@@ -26,7 +26,7 @@ export default async function AdminPage() {
   const cycle = await getActiveCycle(supabase);
   const { data: allMembers } = await supabase
     .from('members')
-    .select('id, email, full_name, role, is_active')
+    .select('*')
     .order('full_name', { nullsFirst: false });
   const activeMembers = (allMembers || []).filter((m) => m.is_active);
   const removedMembers = (allMembers || []).filter((m) => !m.is_active);
@@ -297,6 +297,7 @@ export default async function AdminPage() {
           <h2>Roster</h2>
           <p className="muted panel-sub">
             Only people on this list can sign in. Admins see live scores, contact details, and extenuating circumstances.
+            Extra reviewers (and admins) can add any applicant to their own review queue from the applicant&apos;s profile.
           </p>
           <RosterForm />
           <ul className="roster">
@@ -305,10 +306,16 @@ export default async function AdminPage() {
                 <span className="roster-name">
                   {m.full_name || <span className="muted">No name</span>}
                   {m.role === 'admin' && <span className="badge">Admin</span>}
+                  {m.role !== 'admin' && m.extra_reviewer && <span className="badge badge-extra">Extra reviewer</span>}
                 </span>
                 <span className="roster-email">{m.email}</span>
                 {m.id !== member.id && (
                   <span className="roster-actions">
+                    {m.role !== 'admin' && (
+                      <MemberButton id={m.id} action={m.extra_reviewer ? 'remove_extra' : 'make_extra'}>
+                        {m.extra_reviewer ? 'Remove extra reviewer' : 'Make extra reviewer'}
+                      </MemberButton>
+                    )}
                     <MemberButton id={m.id} action={m.role === 'admin' ? 'make_member' : 'make_admin'}>
                       {m.role === 'admin' ? 'Remove admin' : 'Make admin'}
                     </MemberButton>

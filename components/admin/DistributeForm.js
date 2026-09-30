@@ -14,6 +14,7 @@ export default function DistributeForm({ rounds, members, progress }) {
   const [selected, setSelected] = useState(() => new Set());
   const [perApplicant, setPerApplicant] = useState(2);
   const [onlyNew, setOnlyNew] = useState(true);
+  const [weights, setWeights] = useState({});
 
   const round = rounds.find((r) => r.id === roundId);
   const roundProgress = progress[roundId] || {};
@@ -28,9 +29,15 @@ export default function DistributeForm({ rounds, members, progress }) {
     const total = n * k;
     const lo = Math.floor(total / m);
     const hi = Math.ceil(total / m);
+    const weighted = [...selected].some((id) => (weights[id] || 1) > 1);
+    if (weighted && !topUp) {
+      const units = [...selected].reduce((sum, id) => sum + (weights[id] || 1), 0);
+      const per1 = total / units;
+      return `${n} applicants, ${k} reviewer${k === 1 ? '' : 's'} each: about ${Math.round(per1)} per member at ×1${[2, 3].filter((w) => [...selected].some((id) => (weights[id] || 1) === w)).map((w) => `, ${Math.round(per1 * w)} at ×${w}`).join('')}.`;
+    }
     if (topUp) return `${n} applicant${n === 1 ? '' : 's'} without a reviewer will be spread across the selected members, ${k} reviewer${k === 1 ? '' : 's'} each, favoring whoever has the fewest.`;
     return `${n} applicants, ${k} reviewer${k === 1 ? '' : 's'} each: every selected member gets ${lo === hi ? lo : `${lo} or ${hi}`}.`;
-  }, [round, selected, perApplicant, topUp]);
+  }, [round, selected, perApplicant, topUp, weights]);
 
   function toggle(id) {
     setSelected((prev) => {
@@ -133,6 +140,21 @@ export default function DistributeForm({ rounds, members, progress }) {
                 <span className="check-meta">
                   {p.done} of {p.assigned} scored
                 </span>
+              )}
+              {selected.has(m.id) && (
+                <select
+                  name={`weight_${m.id}`}
+                  className="weight"
+                  value={weights[m.id] || 1}
+                  onChange={(e) => setWeights((w) => ({ ...w, [m.id]: Number(e.target.value) }))}
+                  onClick={(e) => e.stopPropagation()}
+                  aria-label={`Share for ${m.full_name || m.email}`}
+                  title="Share of applications"
+                >
+                  <option value={1}>×1</option>
+                  <option value={2}>×2</option>
+                  <option value={3}>×3</option>
+                </select>
               )}
             </label>
           );
