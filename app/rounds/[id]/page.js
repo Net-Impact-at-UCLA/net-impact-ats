@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import Header from '@/components/Header';
 import NotOnRoster from '@/components/NotOnRoster';
 import CutoffTool from '@/components/CutoffTool';
+import RoundControls from '@/components/RoundControls';
 import { getSession } from '@/lib/session';
 
 const PHASE_LABEL = {
@@ -21,7 +22,7 @@ export default async function RoundPage({ params }) {
 
   const { data: round } = await supabase
     .from('rounds')
-    .select('id, name, phase, cutoff, sort_order, cycle_id, cycles(name)')
+    .select('id, name, stage, phase, cutoff, sort_order, cycle_id, cycles(name)')
     .eq('id', id)
     .maybeSingle();
   if (!round) notFound();
@@ -62,6 +63,25 @@ export default async function RoundPage({ params }) {
     });
   }
 
+  // Admin control bar stats
+  let stats = null;
+  if (isAdmin) {
+    const [{ count: applicantCount }, { data: asg }, { data: crit }, { count: votesCast }] = await Promise.all([
+      supabase.from('round_applicants').select('applicant_id', { count: 'exact', head: true }).eq('round_id', id),
+      supabase.from('assignments').select('applicant_id, member_id').eq('round_id', id),
+      supabase.from('criteria').select('id').eq('round_id', id),
+      supabase.from('votes').select('member_id', { count: 'exact', head: true }).eq('round_id', id),
+    ]);
+    const critIds = (crit || []).map((c) => c.id);
+    const { data: sc } = critIds.length
+      ? await supabase.from('scores').select('applicant_id, member_id').in('criterion_id', critIds)
+      : { data: [] };
+    const have = {};
+    (sc || []).forEach((x) => (have[`${x.applicant_id}|${x.member_id}`] = (have[`${x.applicant_id}|${x.member_id}`] || 0) + 1));
+    const reviewsDone = (asg || []).filter((a) => critIds.length && (have[`${a.applicant_id}|${a.member_id}`] || 0) >= critIds.length).length;
+    stats = { applicants: applicantCount || 0, assigned: (asg || []).length, reviewsDone, votesCast: votesCast || 0 };
+  }
+
   return (
     <>
       <Header member={member} cycleName={round.cycles?.name} />
@@ -72,7 +92,9 @@ export default async function RoundPage({ params }) {
           <span className={`phase phase-${round.phase}`}>{PHASE_LABEL[round.phase]}</span>
         </div>
 
-        {round.phase === 'setup' || round.phase === 'scoring' ? (
+        {isAdmin && stats && <RoundControls round={round} nextRoundName={nextRound?.name} stats={stats} />}
+
+        {!isAdmin && (round.phase === 'setup' || round.phase === 'scoring') ? (
           <div className="empty">
             <p>Deliberation voting hasn&apos;t opened for this round yet.</p>
           </div>

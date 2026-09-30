@@ -142,7 +142,7 @@ export default async function AdminPage() {
               <ul className="round-list">
                 {rounds.map((r) => (
                   <li key={r.id} className="round-row">
-                    <span className="round-name">{r.name}</span>
+                    <a href={`/rounds/${r.id}`} className="round-name">{r.name}</a>
                     <span className={`phase phase-${r.phase}`}>{PHASE_LABEL[r.phase]}</span>
                     <span className="round-meta">
                       {r.activeCount} active
