@@ -5,6 +5,7 @@ import RosterForm from '@/components/admin/RosterForm';
 import DistributeForm from '@/components/admin/DistributeForm';
 import GraderChart from '@/components/admin/GraderChart';
 import ConfirmButton from '@/components/ConfirmButton';
+import EventsPanel from '@/components/admin/EventsPanel';
 import { getSession, getActiveCycle } from '@/lib/session';
 import { updateMember, setRoundPhase } from './actions';
 
@@ -33,6 +34,8 @@ export default async function AdminPage() {
 
   let rounds = [];
   let progress = {};
+  let eventRows = [];
+  let applicantTotal = 0;
   let graderTables = [];
   let conflictRows = [];
   if (cycle) {
@@ -110,6 +113,20 @@ export default async function AdminPage() {
         .filter(Boolean);
       return { ...c, memberName: nameOf[c.member_id] || 'Unknown', reviewerCounts };
     });
+
+    // Events + how many applicants each matched
+    const [{ data: evs }, { data: att }, { data: attendeeRows }, { count: appCount }] = await Promise.all([
+      supabase.from('events').select('id, name, held_on, created_at').eq('cycle_id', cycle.id).order('created_at'),
+      supabase.rpc('attendance', { p_cycle: cycle.id }),
+      supabase.from('event_attendees').select('event_id'),
+      supabase.from('applicants').select('id', { count: 'exact', head: true }).eq('cycle_id', cycle.id),
+    ]);
+    applicantTotal = appCount || 0;
+    eventRows = (evs || []).map((e) => ({
+      ...e,
+      attendeeCount: (attendeeRows || []).filter((a) => a.event_id === e.id).length,
+      matchedCount: (att || []).filter((a) => a.event_id === e.id).length,
+    }));
 
     rounds = (roundRows || []).map((r) => ({
       ...r,
@@ -275,6 +292,18 @@ export default async function AdminPage() {
           <section className="panel">
             <h2>No active cycle</h2>
             <p className="muted">Create a recruitment cycle to assign reviewers.</p>
+          </section>
+        )}
+
+        {cycle && (
+          <section className="panel">
+            <h2>Events</h2>
+            <p className="muted panel-sub">
+              Upload sign-in sheets (CSV or Excel) from info sessions and case workshops. Applicants are matched by email, then by
+              exact name, and get a badge everyone can see. Attendee emails stay admin-only. Re-uploading replaces the list, and
+              you can check people off by hand on their profile.
+            </p>
+            <EventsPanel events={eventRows} applicantCount={applicantTotal} />
           </section>
         )}
 

@@ -40,7 +40,14 @@ export async function GET() {
     all(() => supabase.from('members').select('id, full_name, email')),
   ]);
 
+  const [{ data: events }, { data: attendance }, memberNotes] = await Promise.all([
+    supabase.from('events').select('id, name, held_on, created_at').eq('cycle_id', cycle.id).order('created_at'),
+    supabase.rpc('attendance', { p_cycle: cycle.id }),
+    appIds.length ? all(() => supabase.from('member_notes').select('applicant_id, member_id, body, created_at').in('applicant_id', appIds)) : none,
+  ]);
+
   const buffer = await buildWorkbook({
+    events: events || [], attendance: attendance || [], memberNotes,
     rounds: rounds || [], applicants: applicants || [], criteria, roundApplicants, scores, notes, votes, vouches, conflicts, privates, members,
   });
 

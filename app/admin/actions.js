@@ -207,3 +207,51 @@ export async function clearAssignments(_prev, formData) {
   revalidatePath('/');
   return { ok: `Cleared all assignments${critIds.length ? ', scores, and notes' : ''} for ${round.name}. Nobody is assigned now.` };
 }
+
+// ---------- Events (info sessions, case workshops) ----------
+export async function createEvent(_prev, formData) {
+  const { supabase } = await requireAdmin();
+  const name = String(formData.get('name') || '').trim();
+  const heldOn = String(formData.get('held_on') || '') || null;
+  if (!name) return { error: 'Give the event a name.' };
+  const { data: cycle } = await supabase.from('cycles').select('id').eq('is_active', true).maybeSingle();
+  if (!cycle) return { error: 'No active cycle.' };
+  const { error } = await supabase.from('events').insert({ cycle_id: cycle.id, name, held_on: heldOn });
+  if (error) return { error: `Couldn't create the event: ${error.message}` };
+  revalidatePath('/admin');
+  return { ok: `Created ${name}. Upload its attendance sheet below.` };
+}
+
+export async function uploadAttendance(_prev, formData) {
+  const { supabase } = await requireAdmin();
+  const eventId = String(formData.get('eventId'));
+  const file = formData.get('file');
+  if (!file || typeof file === 'string' || !file.size) return { error: 'Choose a CSV or Excel file first.' };
+  if (file.size > 5 * 1024 * 1024) return { error: 'That file is over 5 MB. Export just the sign-in sheet as a CSV.' };
+  if (!/\.(csv|xlsx)$/i.test(file.name)) return { error: 'Upload a .csv or .xlsx file (in Google Sheets: File → Download → CSV).' };
+
+  const { extractAttendees } = await import('@/lib/attendance');
+  const { attendees, error, emailCol, nameCol } = await extractAttendees(new Uint8Array(await file.arrayBuffer()), file.name);
+  if (error) return { error };
+  if (!attendees.length) return { error: 'No attendees found in that file.' };
+
+  const { error: delErr } = await supabase.from('event_attendees').delete().eq('event_id', eventId);
+  if (delErr) return { error: `Couldn't replace the old list: ${delErr.message}` };
+  const rows = attendees.map((a) => ({ event_id: eventId, email: a.email || '', name: a.name }));
+  for (let i = 0; i < rows.length; i += 500) {
+    const { error: insErr } = await supabase.from('event_attendees').upsert(rows.slice(i, i + 500), { onConflict: 'event_id,email,name', ignoreDuplicates: true });
+    if (insErr) return { error: `Couldn't save attendees: ${insErr.message}` };
+  }
+  revalidatePath('/admin');
+  revalidatePath('/');
+  return {
+    ok: `Saved ${attendees.length} attendee${attendees.length === 1 ? '' : 's'} (matched using ${[emailCol && `“${emailCol}”`, nameCol && `“${nameCol}”`].filter(Boolean).join(' and ')}). Applicants who attended now show a badge.`,
+  };
+}
+
+export async function deleteEvent(formData) {
+  const { supabase } = await requireAdmin();
+  await supabase.from('events').delete().eq('id', String(formData.get('eventId')));
+  revalidatePath('/admin');
+  revalidatePath('/');
+}

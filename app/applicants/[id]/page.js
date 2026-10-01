@@ -10,6 +10,8 @@ import ConflictButton from '@/components/ConflictButton';
 import RemoveApplicantButton from '@/components/RemoveApplicantButton';
 import VotePanel from '@/components/VotePanel';
 import SelfReviewButton from '@/components/SelfReviewButton';
+import MemberNotes from '@/components/MemberNotes';
+import AttendanceBadges from '@/components/AttendanceBadges';
 import ReviewSummary from '@/components/ReviewSummary';
 import { getSession, signedUrls } from '@/lib/session';
 import { withProgress } from '@/lib/applicants';
@@ -136,6 +138,17 @@ export default async function ApplicantPage({ params }) {
   const adminVouches = (adminVouchRes.data || []).map((v) => ({ name: v.members?.full_name || v.members?.email, reason: v.reason }));
   const firstName = applicant.full_name.split(' ')[0];
 
+  // Member notes + event attendance
+  const [{ data: mNotes }, { data: events }, { data: attRows }, { data: rosterNames }] = await Promise.all([
+    supabase.from('member_notes').select('id, body, created_at, updated_at, member_id').eq('applicant_id', id).order('created_at'),
+    supabase.from('events').select('id, name, created_at').eq('cycle_id', applicant.cycle_id).order('created_at'),
+    supabase.rpc('attendance', { p_cycle: applicant.cycle_id }),
+    supabase.from('members').select('id, full_name, email'),
+  ]);
+  const authorOf = Object.fromEntries((rosterNames || []).map((m) => [m.id, m.full_name || m.email]));
+  const memberNotes = (mNotes || []).map((n) => ({ ...n, author: authorOf[n.member_id] || 'Former member' }));
+  const attended = Object.fromEntries((attRows || []).filter((r) => r.applicant_id === id).map((r) => [r.event_id, r.how]));
+
   // ---------- Deliberations ----------
   // Reviewer scores/notes are shown once a round reaches voting (admins see them live).
   const myRoundIdsForApplicant = (roundApplicants || []).map((ra) => ra.round_id);
@@ -254,6 +267,8 @@ export default async function ApplicantPage({ params }) {
               )}
             </dl>
 
+            <AttendanceBadges applicantId={id} events={events || []} attended={attended} isAdmin={isAdmin} />
+
             <ConflictButton applicantId={id} firstName={firstName} hasConflict={!!myConflict} />
 
             {isAdmin && (
@@ -298,6 +313,7 @@ export default async function ApplicantPage({ params }) {
             <Answer title="Why Net Impact?" body={applicant.why_net_impact} />
             <Answer title="A social or environmental issue that matters to them" body={applicant.social_issue} />
             <Answer title="Something not on their resume" body={applicant.fun_fact} />
+            <MemberNotes applicantId={id} memberId={member.id} isAdmin={isAdmin} initialNotes={memberNotes} firstName={firstName} />
           </div>
 
           {selfReviewRound && !myRoundIds.includes(selfReviewRound.id) && (

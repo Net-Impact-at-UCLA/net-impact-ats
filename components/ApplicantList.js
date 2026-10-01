@@ -5,9 +5,10 @@ import Link from 'next/link';
 import Avatar from './Avatar';
 import StageTrack from './StageTrack';
 
-export default function ApplicantList({ applicants, rounds }) {
+export default function ApplicantList({ applicants, rounds, events = [] }) {
   const [query, setQuery] = useState('');
   const [roundId, setRoundId] = useState('all');
+  const [eventFilter, setEventFilter] = useState({}); // { eventId: 'yes' | 'no' }
 
   const counts = useMemo(() => {
     const c = {};
@@ -20,12 +21,18 @@ export default function ApplicantList({ applicants, rounds }) {
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
     return applicants.filter((a) => {
+      for (const [eid, want] of Object.entries(eventFilter)) {
+        const went = a.events.includes(eid);
+        if (want === 'yes' && !went) return false;
+        if (want === 'no' && went) return false;
+      }
       if (roundId === 'vouched' && !a.vouches) return false;
       if (roundId !== 'all' && roundId !== 'vouched' && a.currentRoundId !== roundId) return false;
       if (!q) return true;
       return [a.full_name, a.majors, a.grad_year, a.pronouns].join(' ').toLowerCase().includes(q);
     });
-  }, [applicants, query, roundId]);
+  }, [applicants, query, roundId, eventFilter]);
+  const eventName = Object.fromEntries(events.map((e) => [e.id, e.name]));
 
   return (
     <section>
@@ -70,6 +77,35 @@ export default function ApplicantList({ applicants, rounds }) {
         />
       </div>
 
+      {events.length > 0 && (
+        <div className="event-filters" aria-label="Filter by event attendance">
+          {events.map((e) => {
+            const v = eventFilter[e.id];
+            const next = v === undefined ? 'yes' : v === 'yes' ? 'no' : undefined;
+            return (
+              <button
+                key={e.id}
+                type="button"
+                className={`event-chip ${v === 'yes' ? 'event-chip-yes' : v === 'no' ? 'event-chip-no' : ''}`}
+                onClick={() =>
+                  setEventFilter((f) => {
+                    const c = { ...f };
+                    if (next) c[e.id] = next;
+                    else delete c[e.id];
+                    return c;
+                  })
+                }
+                title="Click to cycle: attended, didn't attend, any"
+              >
+                {v === 'yes' ? '✓ ' : v === 'no' ? '✕ ' : ''}
+                {e.name}
+                {v === 'yes' ? ': attended' : v === 'no' ? ': didn’t attend' : ''}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {shown.length === 0 ? (
         <p className="no-results">No applicants match. Try a different search or round.</p>
       ) : (
@@ -89,6 +125,13 @@ export default function ApplicantList({ applicants, rounds }) {
                     )}
                   </span>
                   <span className="row-meta">{[a.majors, a.grad_year && `Class of ${a.grad_year}`].filter(Boolean).join(', ')}</span>
+                  {a.events.length > 0 && (
+                    <span className="row-events">
+                      {a.events.filter((eid) => eventName[eid]).map((eid) => (
+                        <span key={eid} className="row-event">✓ {eventName[eid]}</span>
+                      ))}
+                    </span>
+                  )}
                 </span>
                 <span className="row-gpa" title="GPA">{a.gpa || ''}</span>
                 <span className="row-track">

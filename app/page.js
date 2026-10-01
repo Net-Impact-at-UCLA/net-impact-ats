@@ -86,7 +86,13 @@ export default async function Home({ searchParams }) {
       .sort((x, y) => x.done - y.done || x.name.localeCompare(y.name));
   }
 
-  const { data: vouchRows } = await supabase.rpc('vouch_counts', { p_cycle: cycle.id });
+  const [{ data: vouchRows }, { data: eventList }, { data: attRows }] = await Promise.all([
+    supabase.rpc('vouch_counts', { p_cycle: cycle.id }),
+    supabase.from('events').select('id, name, created_at').eq('cycle_id', cycle.id).order('created_at'),
+    supabase.rpc('attendance', { p_cycle: cycle.id }),
+  ]);
+  const attendedBy = {};
+  (attRows || []).forEach((r) => (attendedBy[r.applicant_id] ??= []).push(r.event_id));
   const vouchCount = Object.fromEntries((vouchRows || []).map((v) => [v.applicant_id, Number(v.vouch_count)]));
 
   // Deliberation voting queue: everyone in a round that's open for voting
@@ -124,6 +130,7 @@ export default async function Home({ searchParams }) {
     ...a,
     headshotUrl: urls[a.headshot_path] || null,
     vouches: vouchCount[a.id] || 0,
+    events: attendedBy[a.id] || [],
   }));
 
   return (
@@ -147,7 +154,7 @@ export default async function Home({ searchParams }) {
             </p>
           </div>
         ) : (
-          <ApplicantList applicants={list} rounds={rounds || []} />
+          <ApplicantList applicants={list} rounds={rounds || []} events={eventList || []} />
         )}
       </main>
     </>
