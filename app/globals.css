@@ -637,3 +637,8 @@ h3 { font-size: 14px; font-weight: 600; }
 .event-chip { font: inherit; font-size: 13px; padding: 4px 10px; border-radius: 999px; border: 1px dashed var(--line); background: transparent; color: var(--muted); cursor: pointer; }
 .event-chip-yes { border-style: solid; border-color: var(--evergreen); color: var(--evergreen-deep); background: var(--sage); }
 .event-chip-no { border-style: solid; border-color: #e3b5ad; color: var(--danger); background: #fdecea; }
+
+/* GPA column: one line, long entries (e.g. "International Baccalaureate (IB) 45/45") truncate */
+.row { grid-template-columns: 44px minmax(0, 1fr) minmax(48px, 150px) 220px; }
+.row-gpa { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+@media (max-width: 640px) { .row { grid-template-columns: 44px 1fr; } }

@@ -133,7 +133,7 @@ export default function ApplicantList({ applicants, rounds, events = [] }) {
                     </span>
                   )}
                 </span>
-                <span className="row-gpa" title="GPA">{a.gpa || ''}</span>
+                <span className="row-gpa" title={a.gpa ? `GPA: ${a.gpa}` : undefined}>{a.gpa || ''}</span>
                 <span className="row-track">
                   <StageTrack rounds={rounds} reachedIndex={a.reachedIndex} status={a.status} />
                   <span className="row-stage">
