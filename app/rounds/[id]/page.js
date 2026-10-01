@@ -4,6 +4,7 @@ import Header from '@/components/Header';
 import NotOnRoster from '@/components/NotOnRoster';
 import CutoffTool from '@/components/CutoffTool';
 import RoundControls from '@/components/RoundControls';
+import AutoRefresh from '@/components/AutoRefresh';
 import { getSession } from '@/lib/session';
 
 const PHASE_LABEL = {
@@ -90,6 +91,7 @@ export default async function RoundPage({ params }) {
         <div className="page-head">
           <h1>{round.name}</h1>
           <span className={`phase phase-${round.phase}`}>{PHASE_LABEL[round.phase]}</span>
+          {['voting', 'closed'].includes(round.phase) && <AutoRefresh />}
         </div>
 
         {isAdmin && stats && <RoundControls round={round} nextRoundName={nextRound?.name} stats={stats} />}

@@ -645,3 +645,11 @@ h3 { font-size: 14px; font-weight: 600; }
 /* Rounds list rows keep their own two-column layout (name left, status right) */
 .row.row-round { grid-template-columns: minmax(0, 1fr) auto; }
 .row.row-round .row-name { white-space: nowrap; }
+
+/* Live indicator */
+.live { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+.live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--evergreen); box-shadow: 0 0 0 0 rgba(46, 94, 74, 0.5); animation: live-pulse 2s infinite; }
+@keyframes live-pulse { 0% { box-shadow: 0 0 0 0 rgba(46, 94, 74, 0.45); } 70% { box-shadow: 0 0 0 6px rgba(46, 94, 74, 0); } 100% { box-shadow: 0 0 0 0 rgba(46, 94, 74, 0); } }
+.live-bar { display: flex; justify-content: flex-end; margin-bottom: -8px; }
+.present-side .live { color: #9fb0a6; }
+.page-head .live { margin-left: auto; }

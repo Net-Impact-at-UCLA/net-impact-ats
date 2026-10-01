@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import Avatar from './Avatar';
+import AutoRefresh from './AutoRefresh';
 
 const fmt = (v) => (Number.isInteger(v) ? String(v) : v.toFixed(1));
 
@@ -25,6 +26,7 @@ export default function PresentView({ round, criteria, applicants, context }) {
     <div className="present">
       <aside className="present-side">
         <p className="present-round">{round.name}: deliberations</p>
+        <AutoRefresh />
         <input
           type="search"
           className="present-search"

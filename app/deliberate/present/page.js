@@ -14,7 +14,16 @@ export default async function PresentPage() {
   if (member.role !== 'admin') redirect('/deliberate');
 
   const { round, criteria, applicants, roster } = await loadDeliberation(supabase);
-  if (!round) redirect('/deliberate');
+  if (!round) {
+    return (
+      <main className="page">
+        <div className="empty">
+          <h1>Voting is closed</h1>
+          <p>There’s no round in deliberation voting right now. <a href="/rounds">See rounds</a></p>
+        </div>
+      </main>
+    );
+  }
   const context = await loadContext(supabase, round, criteria, roster);
 
   return <PresentView round={round} criteria={criteria} applicants={applicants} context={context} />;
