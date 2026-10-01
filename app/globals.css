@@ -642,3 +642,6 @@ h3 { font-size: 14px; font-weight: 600; }
 .row { grid-template-columns: 44px minmax(0, 1fr) minmax(48px, 150px) 220px; }
 .row-gpa { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 @media (max-width: 640px) { .row { grid-template-columns: 44px 1fr; } }
+/* Rounds list rows keep their own two-column layout (name left, status right) */
+.row.row-round { grid-template-columns: minmax(0, 1fr) auto; }
+.row.row-round .row-name { white-space: nowrap; }
