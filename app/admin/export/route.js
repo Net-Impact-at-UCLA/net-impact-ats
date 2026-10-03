@@ -30,7 +30,7 @@ export async function GET() {
   const none = [];
   const [criteria, roundApplicants, scores, notes, votes, vouches, conflicts, privates, members] = await Promise.all([
     roundIds.length ? all(() => supabase.from('criteria').select('id, round_id, name, sort_order').in('round_id', roundIds)) : none,
-    roundIds.length ? all(() => supabase.from('round_applicants').select('round_id, applicant_id, advanced').in('round_id', roundIds)) : none,
+    roundIds.length ? all(() => supabase.from('round_applicants').select('*').in('round_id', roundIds)) : none,
     appIds.length ? all(() => supabase.from('scores').select('criterion_id, applicant_id, member_id, score, updated_at').in('applicant_id', appIds)) : none,
     roundIds.length ? all(() => supabase.from('notes').select('round_id, applicant_id, member_id, criterion_id, body, updated_at').in('round_id', roundIds)) : none,
     roundIds.length ? all(() => supabase.from('votes').select('round_id, applicant_id, member_id, stars, recused, updated_at').in('round_id', roundIds)) : none,

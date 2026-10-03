@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import Avatar from './Avatar';
 import AutoRefresh from './AutoRefresh';
+import AdvanceByVouchButton from './AdvanceByVouchButton';
 
 const fmt = (v) => (Number.isInteger(v) ? String(v) : v.toFixed(1));
 
@@ -45,6 +46,7 @@ export default function PresentView({ round, criteria, applicants, context }) {
               <button type="button" className={`present-item ${x.id === selectedId ? 'present-item-on' : ''}`} onClick={() => setSelectedId(x.id)}>
                 <Avatar name={x.name} src={x.headshot} size={36} />
                 <span>{x.name}</span>
+                {x.byVouch && <span className="present-item-flag" title="Advancing by hard vouch">✓</span>}
               </button>
             </li>
           ))}
@@ -69,6 +71,9 @@ export default function PresentView({ round, criteria, applicants, context }) {
                     <span className="vouch-mark" aria-hidden="true" />
                     Hard vouched{a.vouches > 1 ? ` by ${a.vouches} members` : ''}
                   </p>
+                )}
+                {a.vouches > 0 && (
+                  <AdvanceByVouchButton roundId={round.id} applicantId={a.id} firstName={a.name.split(' ')[0]} initialOn={a.byVouch} large />
                 )}
               </div>
             </div>

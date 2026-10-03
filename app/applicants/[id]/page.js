@@ -10,6 +10,7 @@ import ConflictButton from '@/components/ConflictButton';
 import RemoveApplicantButton from '@/components/RemoveApplicantButton';
 import VotePanel from '@/components/VotePanel';
 import SelfReviewButton from '@/components/SelfReviewButton';
+import AdvanceByVouchButton from '@/components/AdvanceByVouchButton';
 import MemberNotes from '@/components/MemberNotes';
 import AttendanceBadges from '@/components/AttendanceBadges';
 import ReviewSummary from '@/components/ReviewSummary';
@@ -31,7 +32,7 @@ export default async function ApplicantPage({ params }) {
   const isAdmin = member.role === 'admin';
   const [{ data: rounds }, { data: roundApplicants }, privateRes] = await Promise.all([
     supabase.from('rounds').select('id, name, stage, phase, sort_order').eq('cycle_id', applicant.cycle_id).order('sort_order'),
-    supabase.from('round_applicants').select('round_id, applicant_id').eq('applicant_id', id),
+    supabase.from('round_applicants').select('*').eq('applicant_id', id),
     isAdmin
       ? supabase.from('applicant_private').select('*').eq('applicant_id', id).maybeSingle()
       : Promise.resolve({ data: null }),
@@ -245,6 +246,15 @@ export default async function ApplicantPage({ params }) {
               count={Number(vouchCount)}
               adminVouches={isAdmin ? adminVouches : null}
             />
+
+            {(() => {
+              const dRound = isAdmin && Number(vouchCount) > 0
+                ? (rounds || []).find((r) => ['voting', 'closed'].includes(r.phase) && (roundApplicants || []).some((ra) => ra.round_id === r.id))
+                : null;
+              if (!dRound) return null;
+              const ra = (roundApplicants || []).find((x) => x.round_id === dRound.id);
+              return <AdvanceByVouchButton roundId={dRound.id} applicantId={id} firstName={firstName} initialOn={!!ra?.advance_override} />;
+            })()}
 
             <StageTrack rounds={rounds || []} reachedIndex={withStage.reachedIndex} status={applicant.status} showLabels />
 

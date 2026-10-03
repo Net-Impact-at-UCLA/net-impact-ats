@@ -675,3 +675,14 @@ h3 { font-size: 14px; font-weight: 600; }
 .sort + .search { margin-left: 0; }
 .row-avg { color: var(--ink); font-weight: 600; }
 @media (max-width: 640px) { .sort { margin-left: 0; width: 100%; } }
+
+/* Advance by hard vouch */
+.cutoff-vouch { background: var(--gold); }
+.vouch-text { color: #7a5410; }
+.legend-swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; background: var(--gold); margin-right: 4px; vertical-align: -1px; }
+.vouch-adv { background: #fdf3de; color: #7a5410; margin-left: 6px; }
+.advance-vouch { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.advance-vouch-state { font-weight: 600; color: #7a5410; background: #fdf3de; border-radius: 999px; padding: 4px 12px; font-size: 14px; }
+.advance-vouch-lg { margin-top: 14px; }
+.advance-vouch-lg .btn, .advance-vouch-lg .advance-vouch-state { font-size: 18px; padding: 8px 16px; }
+.present-item-flag { margin-left: auto; color: var(--gold); font-weight: 700; }

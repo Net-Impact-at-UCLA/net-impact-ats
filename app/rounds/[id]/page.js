@@ -44,7 +44,7 @@ export default async function RoundPage({ params }) {
     showDistribution ? supabase.rpc('vote_distribution', { p_round: id }) : Promise.resolve({ data: null }),
     showResults ? supabase.rpc('round_results', { p_round: id }) : Promise.resolve({ data: null }),
   ]);
-  const distribution = (distRes.data || []).map((d) => ({ avg: d.avg_stars, votes: Number(d.vote_count) }));
+  const distribution = (distRes.data || []).map((d) => ({ avg: d.avg_stars, votes: Number(d.vote_count), byVouch: !!d.by_vouch }));
   const results = resultsRes.data || [];
 
   // Voting progress (admins): how many applicants each member has voted on
@@ -183,12 +183,15 @@ function ResultsTable({ results, cutoff, released, hidden }) {
           {results.map((r, i) => (
             <tr key={r.applicant_id} className={released ? (r.advanced ? 'res-in' : 'res-out') : ''}>
               <td className="num muted">{i + 1}</td>
-              <td><Link href={`/applicants/${r.applicant_id}`}>{r.full_name}</Link></td>
+              <td>
+                <Link href={`/applicants/${r.applicant_id}`}>{r.full_name}</Link>
+                {!released && r.by_vouch && <span className="vouch-pill vouch-adv">Advancing: hard vouch</span>}
+              </td>
               <td className="num"><strong>{fmt(r.avg_stars)}</strong></td>
               <td className="num">{r.vote_count}</td>
               <td className="num">{r.recusals}</td>
               <td className="num">{fmt(r.avg_interview_score)}</td>
-              {released && <td>{r.advanced ? 'Advanced' : 'Not advanced'}</td>}
+              {released && <td>{r.advanced ? (r.by_vouch ? 'Advanced (hard vouch)' : 'Advanced') : 'Not advanced'}</td>}
             </tr>
           ))}
         </tbody>

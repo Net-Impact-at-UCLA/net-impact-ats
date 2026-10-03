@@ -91,6 +91,7 @@ export default function DeliberationList({ round, applicants, memberId, initialV
                   <span className="delib-name">
                     {a.name}
                     {a.vouches > 0 && <span className="vouch-pill">Hard vouched{a.vouches > 1 ? ` ×${a.vouches}` : ''}</span>}
+                    {a.byVouch && <span className="vouch-pill vouch-adv">Advancing: hard vouch</span>}
                   </span>
                   <span className="muted delib-detail">{a.detail}</span>
                 </span>

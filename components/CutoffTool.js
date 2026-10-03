@@ -6,15 +6,17 @@ import { applyCutoff } from '@/app/admin/actions';
 // Anonymized averages (highest first) with a movable cutoff line.
 // values: [{ avg: number|null, votes: number }]
 export default function CutoffTool({ roundId, roundName, nextRoundName, values, canApply }) {
-  const scored = values.filter((v) => v.avg != null).map((v) => Number(v.avg));
-  const unvoted = values.length - scored.length;
+  const vouched = values.filter((v) => v.byVouch).length;
+  const scored = values.filter((v) => v.avg != null && !v.byVouch).map((v) => Number(v.avg));
+  const unvoted = values.filter((v) => v.avg == null && !v.byVouch).length;
   const [cutoff, setCutoff] = useState(() => {
     if (!scored.length) return 3;
     const median = [...scored].sort((a, b) => b - a)[Math.floor(scored.length / 2)];
     return Math.round(median * 20) / 20;
   });
 
-  const advancing = useMemo(() => scored.filter((v) => v >= cutoff - 1e-9).length, [scored, cutoff]);
+  const atCutoff = useMemo(() => scored.filter((v) => v >= cutoff - 1e-9).length, [scored, cutoff]);
+  const advancing = atCutoff + vouched;
   const pctOf = (v) => `${(v / 5) * 100}%`;
   const bars = [...values].sort((a, b) => (b.avg ?? -1) - (a.avg ?? -1));
 
@@ -23,8 +25,13 @@ export default function CutoffTool({ roundId, roundName, nextRoundName, values, 
       <div className="cutoff-summary" aria-live="polite">
         <span className="cutoff-big">{advancing}</span>
         <span>
-          of {values.length} applicants would advance{nextRoundName ? ` to ${nextRoundName}` : ''} at a cutoff of{' '}
+          of {values.length} applicants would advance{nextRoundName ? ` to ${nextRoundName}` : ''}: {atCutoff} at a cutoff of{' '}
           <strong>{cutoff.toFixed(2)}</strong>
+          {vouched > 0 && (
+            <>
+              {' '}plus <strong className="vouch-text">{vouched} by hard vouch</strong>
+            </>
+          )}
           {values.length ? ` (${Math.round((advancing / values.length) * 100)}%)` : ''}
         </span>
       </div>
@@ -39,9 +46,9 @@ export default function CutoffTool({ roundId, roundName, nextRoundName, values, 
           {bars.map((b, i) => (
             <span
               key={i}
-              className={`cutoff-bar ${b.avg == null ? 'cutoff-none' : Number(b.avg) >= cutoff - 1e-9 ? 'cutoff-in' : 'cutoff-out'}`}
-              style={{ height: b.avg == null ? '2px' : pctOf(Number(b.avg)) }}
-              title={b.avg == null ? 'No votes' : `${Number(b.avg).toFixed(2)} (${b.votes} votes)`}
+              className={`cutoff-bar ${b.byVouch ? 'cutoff-vouch' : b.avg == null ? 'cutoff-none' : Number(b.avg) >= cutoff - 1e-9 ? 'cutoff-in' : 'cutoff-out'}`}
+              style={{ height: b.avg == null ? (b.byVouch ? '6px' : '2px') : pctOf(Number(b.avg)) }}
+              title={`${b.avg == null ? 'No votes' : `${Number(b.avg).toFixed(2)} (${b.votes} votes)`}${b.byVouch ? ', advancing by hard vouch' : ''}`}
             />
           ))}
           <span className="cutoff-line" style={{ bottom: pctOf(cutoff) }}>
@@ -76,6 +83,11 @@ export default function CutoffTool({ roundId, roundName, nextRoundName, values, 
         />
       </label>
 
+      {vouched > 0 && (
+        <p className="muted cutoff-note">
+          <span className="legend-swatch" aria-hidden="true" /> Gold bars are advancing by hard vouch, whatever the cutoff.
+        </p>
+      )}
       {unvoted > 0 && (
         <p className="muted cutoff-note">
           {unvoted} applicant{unvoted === 1 ? '' : 's'} received no votes and won&apos;t advance unless voting is reopened.
@@ -88,7 +100,7 @@ export default function CutoffTool({ roundId, roundName, nextRoundName, values, 
           className="cutoff-apply"
           onSubmit={(e) => {
             const ok = window.confirm(
-              `Apply a cutoff of ${cutoff.toFixed(2)} to ${roundName}?\n\n${advancing} applicant${advancing === 1 ? '' : 's'} advance${nextRoundName ? ` to ${nextRoundName}` : ''} and ${values.length - advancing} won't. Names and results become visible to all members. This can't be undone from the site.`
+              `Apply a cutoff of ${cutoff.toFixed(2)} to ${roundName}?\n\n${advancing} applicant${advancing === 1 ? '' : 's'} advance${nextRoundName ? ` to ${nextRoundName}` : ''}${vouched ? ` (including ${vouched} by hard vouch)` : ''} and ${values.length - advancing} won't. Names and results become visible to all members. This can't be undone from the site.`
             );
             if (!ok) e.preventDefault();
           }}
