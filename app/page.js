@@ -175,7 +175,12 @@ export default async function Home({ searchParams }) {
           <p className="page-sub">{list.length} in {cycle.name}</p>
         </div>
         {voteQueue.length > 0 && <Queue title="Deliberation voting" items={voteQueue} doneLabel="voted" tone="vote" />}
-        {queue.length > 0 && <Queue title="Your review queue" items={queue} />}
+        {(() => {
+          const reviewRound = [...(rounds || [])].filter((r) => r.phase === 'scoring' && r.stage !== 'coffee_chat').sort((a, b) => b.sort_order - a.sort_order)[0];
+          return queue.length > 0 || reviewRound ? (
+            <Queue title="Your review queue" items={queue} reviewMore={reviewRound ? { id: reviewRound.id, name: reviewRound.name } : null} />
+          ) : null;
+        })()}
         {list.length === 0 ? (
           <div className="empty">
             <h2>No applicants yet</h2>

@@ -659,3 +659,11 @@ h3 { font-size: 14px; font-weight: 600; }
 .row-reviews { color: var(--muted); }
 .rv-done { color: var(--evergreen); font-weight: 600; }
 .rv-none { color: #7a5410; }
+
+/* Review more applicants */
+.review-more { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 0 0 14px; padding: 10px 12px; background: var(--paper); border-radius: var(--radius-s); }
+.review-more-label { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.review-more-count { width: 64px; padding: 6px 8px; text-align: center; }
+.review-more-hint { font-size: 13px; }
+.review-more .form-ok, .review-more .form-error { font-size: 13px; flex-basis: 100%; margin: 0; }
+.queue-empty { margin: 0 0 6px; font-size: 14px; }
