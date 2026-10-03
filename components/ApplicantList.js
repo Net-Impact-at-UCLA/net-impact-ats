@@ -9,6 +9,8 @@ export default function ApplicantList({ applicants, rounds, events = [] }) {
   const [query, setQuery] = useState('');
   const [roundId, setRoundId] = useState('all');
   const [eventFilter, setEventFilter] = useState({}); // { eventId: 'yes' | 'no' }
+  const [sort, setSort] = useState('name');
+  const canSort = applicants.some((a) => a.reviews);
 
   const counts = useMemo(() => {
     const c = {};
@@ -32,6 +34,24 @@ export default function ApplicantList({ applicants, rounds, events = [] }) {
       return [a.full_name, a.majors, a.grad_year, a.pronouns].join(' ').toLowerCase().includes(q);
     });
   }, [applicants, query, roundId, eventFilter]);
+
+  const sorted = useMemo(() => {
+    if (sort === 'name') return shown;
+    const avg = (a) => a.reviews?.avg;
+    const list = [...shown];
+    if (sort === 'score-high' || sort === 'score-low') {
+      const dir = sort === 'score-high' ? -1 : 1;
+      list.sort((a, b) => {
+        if (avg(a) == null && avg(b) == null) return a.full_name.localeCompare(b.full_name);
+        if (avg(a) == null) return 1;
+        if (avg(b) == null) return -1;
+        return dir * (avg(a) - avg(b)) || a.full_name.localeCompare(b.full_name);
+      });
+    } else if (sort === 'fewest') {
+      list.sort((a, b) => (a.reviews?.done ?? 0) - (b.reviews?.done ?? 0) || a.full_name.localeCompare(b.full_name));
+    }
+    return list;
+  }, [shown, sort]);
   const eventName = Object.fromEntries(events.map((e) => [e.id, e.name]));
 
   return (
@@ -67,6 +87,17 @@ export default function ApplicantList({ applicants, rounds, events = [] }) {
             </button>
           ))}
         </div>
+        {canSort && (
+          <label className="sort">
+            <span className="sort-label">Sort</span>
+            <select className="select sort-select" value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Sort applicants">
+              <option value="name">Name (A to Z)</option>
+              <option value="score-high">Review score, highest first</option>
+              <option value="score-low">Review score, lowest first</option>
+              <option value="fewest">Fewest reviews first</option>
+            </select>
+          </label>
+        )}
         <input
           className="search"
           type="search"
@@ -110,7 +141,7 @@ export default function ApplicantList({ applicants, rounds, events = [] }) {
         <p className="no-results">No applicants match. Try a different search or round.</p>
       ) : (
         <ul className="rows">
-          {shown.map((a) => (
+          {sorted.map((a, i) => (
             <li key={a.id}>
               <Link href={`/applicants/${a.id}`} className={`row ${a.status === 'rejected' ? 'row-muted' : ''}`}>
                 <Avatar name={a.full_name} src={a.headshotUrl} size={44} />
@@ -146,6 +177,7 @@ export default function ApplicantList({ applicants, rounds, events = [] }) {
                         {a.reviews.done === 0
                           ? `, no reviews yet${a.reviews.started ? ` (${a.reviews.started} in progress)` : ''}`
                           : `, ${a.reviews.done} review${a.reviews.done === 1 ? '' : 's'}`}
+                        {a.reviews.avg != null && <span className="row-avg">, avg {a.reviews.avg.toFixed(2)}</span>}
                       </span>
                     )}
                   </span>

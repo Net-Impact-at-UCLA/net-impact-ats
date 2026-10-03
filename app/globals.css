@@ -667,3 +667,11 @@ h3 { font-size: 14px; font-weight: 600; }
 .review-more-hint { font-size: 13px; }
 .review-more .form-ok, .review-more .form-error { font-size: 13px; flex-basis: 100%; margin: 0; }
 .queue-empty { margin: 0 0 6px; font-size: 14px; }
+
+/* Admin sort */
+.sort { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.sort-label { font-size: 13px; color: var(--muted); }
+.sort-select { min-width: 0; font-size: 13px; padding: 7px 8px; }
+.sort + .search { margin-left: 0; }
+.row-avg { color: var(--ink); font-weight: 600; }
+@media (max-width: 640px) { .sort { margin-left: 0; width: 100%; } }

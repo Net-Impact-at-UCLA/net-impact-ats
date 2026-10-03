@@ -140,9 +140,14 @@ export default async function Home({ searchParams }) {
     const need = {};
     allCrit.forEach((c) => (need[c.round_id] = (need[c.round_id] || 0) + 1));
     const scored = {};
+    const sums = {};
     allScores.forEach((x) => {
       const k = `${roundOfCrit[x.criterion_id]}|${x.applicant_id}|${x.member_id}`;
       scored[k] = (scored[k] || 0) + 1;
+      const ak = `${roundOfCrit[x.criterion_id]}|${x.applicant_id}`;
+      const t = (sums[ak] ??= { total: 0, n: 0 });
+      t.total += Number(x.score);
+      t.n += 1;
     });
     allAsg.forEach((a) => {
       const c = (reviewCounts[`${a.round_id}|${a.applicant_id}`] ??= { assigned: 0, done: 0, started: 0 });
@@ -150,6 +155,10 @@ export default async function Home({ searchParams }) {
       const n = scored[`${a.round_id}|${a.applicant_id}|${a.member_id}`] || 0;
       if (need[a.round_id] && n >= need[a.round_id]) c.done += 1;
       else if (n > 0) c.started += 1;
+    });
+    Object.entries(sums).forEach(([k, t]) => {
+      const c = (reviewCounts[k] ??= { assigned: 0, done: 0, started: 0 });
+      c.avg = t.n ? Math.round((t.total / t.n) * 100) / 100 : null;
     });
   }
 
