@@ -158,7 +158,10 @@ export default async function Home({ searchParams }) {
     ...a,
     headshotUrl: urls[a.headshot_path] || null,
     vouches: vouchCount[a.id] || 0,
-    reviews: null,
+    reviews:
+      member.role === 'admin'
+        ? reviewCounts[`${a.currentRoundId}|${a.id}`] || { assigned: 0, done: 0, started: 0 }
+        : null,
     events: attendedBy[a.id] || [],
   }));
 
