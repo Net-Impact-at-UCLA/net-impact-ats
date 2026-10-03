@@ -5,6 +5,7 @@ import NotOnRoster from '@/components/NotOnRoster';
 import CutoffTool from '@/components/CutoffTool';
 import RoundControls from '@/components/RoundControls';
 import AutoRefresh from '@/components/AutoRefresh';
+import PushAfterReleaseButton from '@/components/PushAfterReleaseButton';
 import { getSession, fetchAll } from '@/lib/session';
 
 const PHASE_LABEL = {
@@ -164,6 +165,9 @@ export default async function RoundPage({ params }) {
         {showResults && results.length > 0 && !(byScores && round.phase !== 'released') && (
           <ResultsTable
             byScores={byScores}
+            canPush={isAdmin && round.phase === 'released'}
+            roundId={round.id}
+            nextRoundName={nextRound?.name}
             results={results}
             cutoff={round.cutoff}
             released={round.phase === 'released'}
@@ -175,7 +179,7 @@ export default async function RoundPage({ params }) {
   );
 }
 
-function ResultsTable({ results, cutoff, released, hidden, byScores }) {
+function ResultsTable({ results, cutoff, released, hidden, byScores, canPush, roundId, nextRoundName }) {
   const fmt = (v) => (v == null ? '·' : Number(v).toFixed(2));
   const table = (
     <div className="table-wrap">
@@ -189,6 +193,7 @@ function ResultsTable({ results, cutoff, released, hidden, byScores }) {
             {!byScores && <th scope="col" className="num">Recused</th>}
             {!byScores && <th scope="col" className="num">Reviewer avg</th>}
             {released && <th scope="col">Result</th>}
+            {canPush && <th scope="col"><span className="sr-only">Actions</span></th>}
           </tr>
         </thead>
         <tbody>
@@ -204,6 +209,19 @@ function ResultsTable({ results, cutoff, released, hidden, byScores }) {
               {!byScores && <td className="num">{r.recusals}</td>}
               {!byScores && <td className="num">{fmt(r.avg_interview_score)}</td>}
               {released && <td>{r.advanced ? (r.by_vouch ? (byScores ? 'Advanced (pushed through)' : 'Advanced (hard vouch)') : 'Advanced') : 'Not advanced'}</td>}
+              {canPush && (
+                <td>
+                  {(!r.advanced || r.by_vouch) && (
+                    <PushAfterReleaseButton
+                      roundId={roundId}
+                      applicantId={r.applicant_id}
+                      name={r.full_name}
+                      nextRoundName={nextRoundName}
+                      pushed={!!(r.advanced && r.by_vouch)}
+                    />
+                  )}
+                </td>
+              )}
             </tr>
           ))}
         </tbody>
