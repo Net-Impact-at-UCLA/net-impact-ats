@@ -247,6 +247,29 @@ function ResultsTable({ results, cutoff, released, hidden, byScores, canPush, ro
     <section className="panel-lite">
       <h2>Results</h2>
       <p className="muted panel-sub">{byScores ? 'Cut line' : 'Cutoff'} applied: {fmt(cutoff)}. Advancing applicants have moved to the next round.</p>
+      {released && (() => {
+        const adv = results.filter((r) => r.advanced);
+        const pushed = adv.filter((r) => r.by_vouch).length;
+        const cut = results.filter((r) => !r.advanced && cutIds.has(r.applicant_id)).length;
+        const out = results.length - adv.length;
+        return (
+          <div className="tally" aria-live="polite">
+            <div className="tally-main">
+              <span className="tally-big">{adv.length}</span>
+              <span>
+                of {results.length} moving on{nextRoundName ? ` to ${nextRoundName}` : ''}
+                <span className="muted"> ({Math.round((adv.length / Math.max(results.length, 1)) * 100)}%)</span>
+              </span>
+            </div>
+            <div className="tally-parts">
+              <span><strong>{adv.length - pushed}</strong> at or above the line</span>
+              <span><strong>{pushed}</strong> {byScores ? 'pushed through' : 'by hard vouch'}</span>
+              <span><strong>{cut}</strong> cut by hand</span>
+              <span><strong>{out}</strong> not advancing</span>
+            </div>
+          </div>
+        );
+      })()}
       {table}
     </section>
   );

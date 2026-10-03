@@ -718,3 +718,10 @@ h3 { font-size: 14px; font-weight: 600; }
 .results-table .res-out .push-btn { color: var(--evergreen-deep); }
 .btn-danger-quiet { background: transparent; border: 1px solid #e3c4bd; color: #8a3a2b; }
 .btn-danger-quiet:hover { background: #fbf1ee; }
+
+/* Results running total */
+.tally { display: flex; align-items: center; justify-content: space-between; gap: 16px 28px; flex-wrap: wrap; background: var(--paper); border-radius: var(--radius-s); padding: 14px 18px; margin: 4px 0 18px; }
+.tally-main { display: flex; align-items: baseline; gap: 10px; font-size: 15px; }
+.tally-big { font-size: 34px; font-weight: 700; color: var(--evergreen); line-height: 1; }
+.tally-parts { display: flex; gap: 8px 22px; flex-wrap: wrap; font-size: 14px; color: var(--muted); }
+.tally-parts strong { color: var(--ink); }
