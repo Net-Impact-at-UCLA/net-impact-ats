@@ -653,3 +653,6 @@ h3 { font-size: 14px; font-weight: 600; }
 .live-bar { display: flex; justify-content: flex-end; margin-bottom: -8px; }
 .present-side .live { color: #9fb0a6; }
 .page-head .live { margin-left: auto; }
+
+/* With scoring underneath, the left column must not stick (it would slide over the scoring panel) */
+.profile-grid.has-score .profile-side { position: static; }
