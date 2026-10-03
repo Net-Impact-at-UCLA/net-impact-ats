@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { setRoundPhase, setDecideBy } from '@/app/admin/actions';
 import ConfirmButton from './ConfirmButton';
+import ReopenCutoffButton from './ReopenCutoffButton';
 
 const VOTE_STEPS = [
   { key: 'setup', label: 'Not started' },
@@ -60,7 +61,7 @@ export default function RoundControls({ round, nextRoundName, stats }) {
   } else if (round.phase === 'closed') {
     next = 'Everyone can now see the anonymous averages below. Agree on a cutoff, then apply it at the bottom of the chart.';
   } else {
-    next = `Results are released${nextRoundName ? ` and advancing applicants are in ${nextRoundName}` : ''}. Download the export from the Admin page for the Advancing list.`;
+    next = `Results are released${nextRoundName ? ` and advancing applicants are in ${nextRoundName}` : ''}. Download the export for the Advancing list. Need to change the line? Reopen it, as long as ${nextRoundName || 'the next round'} hasn't started.`;
   }
 
   return (
@@ -142,7 +143,12 @@ export default function RoundControls({ round, nextRoundName, stats }) {
             Reopen voting
           </PhaseButton>
         )}
-        {round.phase === 'released' && <Link href="/admin/export" className="btn btn-quiet">Download results (.xlsx)</Link>}
+        {round.phase === 'released' && (
+          <>
+            <Link href="/admin/export" className="btn btn-quiet">Download results (.xlsx)</Link>
+            <ReopenCutoffButton roundId={round.id} roundName={round.name} nextRoundName={nextRoundName} label={byScores ? 'cut line' : 'cutoff'} />
+          </>
+        )}
       </div>
     </section>
   );
