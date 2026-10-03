@@ -41,7 +41,7 @@ export default async function AdminPage() {
   if (cycle) {
     const { data: roundRows } = await supabase
       .from('rounds')
-      .select('id, name, stage, phase, sort_order')
+      .select('*')
       .eq('cycle_id', cycle.id)
       .order('sort_order');
     const roundIds = (roundRows || []).map((r) => r.id);
@@ -174,9 +174,15 @@ export default async function AdminPage() {
                       {r.phase === 'scoring' && (
                         <>
                           <PhaseButton id={r.id} to="setup">Pause scoring</PhaseButton>
-                          <PhaseButton id={r.id} to="voting" primary confirm={`Open deliberation voting for ${r.name}? Scoring closes, and every member can see reviewers' scores and notes and vote.`}>
-                            Open voting
-                          </PhaseButton>
+                          {r.decide_by === 'scores' ? (
+                            <PhaseButton id={r.id} to="closed" primary confirm={`Close scoring for ${r.name} and set the cut line on average review scores?`}>
+                              Close scoring
+                            </PhaseButton>
+                          ) : (
+                            <PhaseButton id={r.id} to="voting" primary confirm={`Open deliberation voting for ${r.name}? Scoring closes, and every member can see reviewers' scores and notes and vote.`}>
+                              Open voting
+                            </PhaseButton>
+                          )}
                         </>
                       )}
                       {r.phase === 'voting' && (
@@ -187,10 +193,12 @@ export default async function AdminPage() {
                           </PhaseButton>
                         </>
                       )}
-                      {r.phase === 'closed' && <PhaseButton id={r.id} to="voting">Reopen voting</PhaseButton>}
+                      {r.phase === 'closed' && (r.decide_by === 'scores'
+                        ? <PhaseButton id={r.id} to="scoring">Reopen scoring</PhaseButton>
+                        : <PhaseButton id={r.id} to="voting">Reopen voting</PhaseButton>)}
                       {['voting', 'closed', 'released'].includes(r.phase) && (
                         <a href={`/rounds/${r.id}`} className="btn btn-quiet">
-                          {r.phase === 'closed' ? 'Set cutoff' : r.phase === 'released' ? 'Results' : 'Live votes'}
+                          {r.phase === 'closed' ? (r.decide_by === 'scores' ? 'Set cut line' : 'Set cutoff') : r.phase === 'released' ? 'Results' : 'Live votes'}
                         </a>
                       )}
                     </span>

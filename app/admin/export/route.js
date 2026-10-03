@@ -12,7 +12,7 @@ export async function GET() {
   const cycle = await getActiveCycle(supabase);
   if (!cycle) return NextResponse.json({ error: 'No active cycle' }, { status: 404 });
 
-  const { data: rounds } = await supabase.from('rounds').select('id, name, stage, phase, sort_order, cutoff').eq('cycle_id', cycle.id).order('sort_order');
+  const { data: rounds } = await supabase.from('rounds').select('*').eq('cycle_id', cycle.id).order('sort_order');
   const roundIds = (rounds || []).map((r) => r.id);
   const { data: applicants } = await supabase.from('applicants').select('*').eq('cycle_id', cycle.id);
   const appIds = (applicants || []).map((a) => a.id);

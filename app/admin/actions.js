@@ -78,13 +78,11 @@ export async function setRoundPhase(formData) {
   const { supabase } = await requireAdmin();
   const roundId = String(formData.get('roundId'));
   const phase = String(formData.get('phase'));
-  const allowed = {
-    setup: ['scoring'],
-    scoring: ['setup', 'voting'],
-    voting: ['scoring', 'closed'],
-    closed: ['voting'],
-  };
-  const { data: round } = await supabase.from('rounds').select('phase').eq('id', roundId).maybeSingle();
+  const { data: round } = await supabase.from('rounds').select('*').eq('id', roundId).maybeSingle();
+  const byScores = round?.decide_by === 'scores';
+  const allowed = byScores
+    ? { setup: ['scoring'], scoring: ['setup', 'closed'], closed: ['scoring'] }
+    : { setup: ['scoring'], scoring: ['setup', 'voting'], voting: ['scoring', 'closed'], closed: ['voting'] };
   if (!round || !allowed[round.phase]?.includes(phase)) return;
   await supabase.from('rounds').update({ phase }).eq('id', roundId);
   revalidatePath(`/rounds/${roundId}`);
@@ -254,4 +252,17 @@ export async function deleteEvent(formData) {
   await supabase.from('events').delete().eq('id', String(formData.get('eventId')));
   revalidatePath('/admin');
   revalidatePath('/');
+}
+
+// How a round is decided: 'scores' (cut line on average review score) or 'votes' (deliberation vote)
+export async function setDecideBy(formData) {
+  const { supabase } = await requireAdmin();
+  const roundId = String(formData.get('roundId'));
+  const mode = String(formData.get('mode'));
+  if (!['scores', 'votes'].includes(mode)) return;
+  const { data: round } = await supabase.from('rounds').select('phase').eq('id', roundId).maybeSingle();
+  if (!round || !['setup', 'scoring'].includes(round.phase)) return;
+  await supabase.from('rounds').update({ decide_by: mode }).eq('id', roundId);
+  revalidatePath(`/rounds/${roundId}`);
+  revalidatePath('/admin');
 }

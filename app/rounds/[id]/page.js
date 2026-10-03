@@ -23,7 +23,7 @@ export default async function RoundPage({ params }) {
 
   const { data: round } = await supabase
     .from('rounds')
-    .select('id, name, stage, phase, cutoff, sort_order, cycle_id, cycles(name)')
+    .select('*, cycles(name)')
     .eq('id', id)
     .maybeSingle();
   if (!round) notFound();
@@ -37,8 +37,9 @@ export default async function RoundPage({ params }) {
     .limit(1)
     .maybeSingle();
 
-  const showDistribution = round.phase === 'closed' || (isAdmin && round.phase === 'voting');
-  const showResults = round.phase === 'released' || (isAdmin && ['voting', 'closed'].includes(round.phase));
+  const byScores = round.decide_by === 'scores';
+  const showDistribution = round.phase === 'closed' || (isAdmin && (round.phase === 'voting' || (byScores && round.phase === 'scoring')));
+  const showResults = round.phase === 'released' || (isAdmin && ['voting', 'closed'].includes(round.phase)) || (isAdmin && byScores && round.phase === 'scoring');
 
   const [distRes, resultsRes] = await Promise.all([
     showDistribution ? supabase.rpc('vote_distribution', { p_round: id }) : Promise.resolve({ data: null }),
@@ -114,11 +115,15 @@ export default async function RoundPage({ params }) {
 
         {showDistribution && (
           <section className="panel-lite">
-            <h2>{round.phase === 'closed' ? 'Blind cutoff' : 'Live distribution'}</h2>
+            <h2>{byScores ? (round.phase === 'closed' ? 'Cut line' : 'Live preview') : round.phase === 'closed' ? 'Blind cutoff' : 'Live distribution'}</h2>
             <p className="muted panel-sub">
-              {round.phase === 'closed'
-                ? 'Each bar is one applicant’s average vote, highest first. Names stay hidden until the cutoff is applied.'
-                : 'Visible to admins while voting is open. Members see this once voting closes.'}
+              {byScores
+                ? round.phase === 'closed'
+                  ? 'Each bar is one applicant’s average review score, highest first. Move the line, push through anyone the club wants to keep, then apply it.'
+                  : 'Admins only, while scoring is open: where the line might fall based on scores so far. Pushing through and applying unlock when scoring closes.'
+                : round.phase === 'closed'
+                  ? 'Each bar is one applicant’s average vote, highest first. Names stay hidden until the cutoff is applied.'
+                  : 'Visible to admins while voting is open. Members see this once voting closes.'}
             </p>
             {distribution.length ? (
               <CutoffTool
@@ -126,6 +131,12 @@ export default async function RoundPage({ params }) {
                 roundName={round.name}
                 nextRoundName={nextRound?.name}
                 values={distribution}
+                mode={byScores ? 'scores' : 'votes'}
+                named={
+                  isAdmin && byScores
+                    ? results.map((r) => ({ id: r.applicant_id, name: r.full_name, avg: r.avg_stars, count: Number(r.vote_count), pushed: !!r.by_vouch }))
+                    : null
+                }
                 canApply={isAdmin && round.phase === 'closed'}
               />
             ) : (
@@ -150,8 +161,9 @@ export default async function RoundPage({ params }) {
           </details>
         )}
 
-        {showResults && results.length > 0 && (
+        {showResults && results.length > 0 && !(byScores && round.phase !== 'released') && (
           <ResultsTable
+            byScores={byScores}
             results={results}
             cutoff={round.cutoff}
             released={round.phase === 'released'}
@@ -163,7 +175,7 @@ export default async function RoundPage({ params }) {
   );
 }
 
-function ResultsTable({ results, cutoff, released, hidden }) {
+function ResultsTable({ results, cutoff, released, hidden, byScores }) {
   const fmt = (v) => (v == null ? '·' : Number(v).toFixed(2));
   const table = (
     <div className="table-wrap">
@@ -172,10 +184,10 @@ function ResultsTable({ results, cutoff, released, hidden }) {
           <tr>
             <th scope="col" className="num">#</th>
             <th scope="col">Applicant</th>
-            <th scope="col" className="num">Avg vote</th>
-            <th scope="col" className="num">Votes</th>
-            <th scope="col" className="num">Recused</th>
-            <th scope="col" className="num">Reviewer avg</th>
+            <th scope="col" className="num">{byScores ? 'Avg review score' : 'Avg vote'}</th>
+            <th scope="col" className="num">{byScores ? 'Reviewers' : 'Votes'}</th>
+            {!byScores && <th scope="col" className="num">Recused</th>}
+            {!byScores && <th scope="col" className="num">Reviewer avg</th>}
             {released && <th scope="col">Result</th>}
           </tr>
         </thead>
@@ -189,9 +201,9 @@ function ResultsTable({ results, cutoff, released, hidden }) {
               </td>
               <td className="num"><strong>{fmt(r.avg_stars)}</strong></td>
               <td className="num">{r.vote_count}</td>
-              <td className="num">{r.recusals}</td>
-              <td className="num">{fmt(r.avg_interview_score)}</td>
-              {released && <td>{r.advanced ? (r.by_vouch ? 'Advanced (hard vouch)' : 'Advanced') : 'Not advanced'}</td>}
+              {!byScores && <td className="num">{r.recusals}</td>}
+              {!byScores && <td className="num">{fmt(r.avg_interview_score)}</td>}
+              {released && <td>{r.advanced ? (r.by_vouch ? (byScores ? 'Advanced (pushed through)' : 'Advanced (hard vouch)') : 'Advanced') : 'Not advanced'}</td>}
             </tr>
           ))}
         </tbody>
@@ -212,7 +224,7 @@ function ResultsTable({ results, cutoff, released, hidden }) {
   return (
     <section className="panel-lite">
       <h2>Results</h2>
-      <p className="muted panel-sub">Cutoff applied: {fmt(cutoff)}. Advancing applicants have moved to the next round.</p>
+      <p className="muted panel-sub">{byScores ? 'Cut line' : 'Cutoff'} applied: {fmt(cutoff)}. Advancing applicants have moved to the next round.</p>
       {table}
     </section>
   );
