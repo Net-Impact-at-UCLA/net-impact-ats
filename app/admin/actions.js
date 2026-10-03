@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { getSession } from '@/lib/session';
+import { getSession, fetchAll } from '@/lib/session';
 import { distribute } from '@/lib/distribute';
 import { createAdminClient } from '@/lib/supabase/admin';
 
@@ -120,7 +120,7 @@ export async function distributeReviewers(_prev, formData) {
   // "Assign new applicants only": keep current assignments, fill in anyone without a reviewer
   let initialLoad = {};
   if (onlyNew) {
-    const { data: existing } = await supabase.from('assignments').select('applicant_id, member_id').eq('round_id', roundId);
+    const existing = await fetchAll(() => supabase.from('assignments').select('applicant_id, member_id').eq('round_id', roundId).order('applicant_id').order('member_id'));
     const covered = new Set((existing || []).map((a) => a.applicant_id));
     (existing || []).forEach((a) => (initialLoad[a.member_id] = (initialLoad[a.member_id] || 0) + 1));
     applicantIds = applicantIds.filter((id) => !covered.has(id));

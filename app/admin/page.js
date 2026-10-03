@@ -6,7 +6,7 @@ import DistributeForm from '@/components/admin/DistributeForm';
 import GraderChart from '@/components/admin/GraderChart';
 import ConfirmButton from '@/components/ConfirmButton';
 import EventsPanel from '@/components/admin/EventsPanel';
-import { getSession, getActiveCycle } from '@/lib/session';
+import { getSession, getActiveCycle, fetchAll } from '@/lib/session';
 import { updateMember, setRoundPhase } from './actions';
 
 export const metadata = { title: 'Admin · Net Impact ATS' };
@@ -46,15 +46,15 @@ export default async function AdminPage() {
       .order('sort_order');
     const roundIds = (roundRows || []).map((r) => r.id);
 
-    const [{ data: ra }, { data: assignments }, { data: criteria }] = await Promise.all([
-      supabase.from('round_applicants').select('round_id, applicant_id, applicants(status)').in('round_id', roundIds),
-      supabase.from('assignments').select('round_id, applicant_id, member_id').in('round_id', roundIds),
+    const [ra, assignments, { data: criteria }] = await Promise.all([
+      fetchAll(() => supabase.from('round_applicants').select('round_id, applicant_id, applicants(status)').in('round_id', roundIds).order('round_id').order('applicant_id')),
+      fetchAll(() => supabase.from('assignments').select('round_id, applicant_id, member_id').in('round_id', roundIds).order('round_id').order('applicant_id').order('member_id')),
       supabase.from('criteria').select('id, round_id').in('round_id', roundIds),
     ]);
     const criteriaIds = (criteria || []).map((c) => c.id);
-    const { data: scores } = criteriaIds.length
-      ? await supabase.from('scores').select('criterion_id, applicant_id, member_id, score').in('criterion_id', criteriaIds)
-      : { data: [] };
+    const scores = criteriaIds.length
+      ? await fetchAll(() => supabase.from('scores').select('criterion_id, applicant_id, member_id, score').in('criterion_id', criteriaIds).order('criterion_id').order('applicant_id').order('member_id'))
+      : [];
 
     const criteriaByRound = {};
     (criteria || []).forEach((c) => (criteriaByRound[c.round_id] ??= new Set()).add(c.id));
@@ -118,7 +118,7 @@ export default async function AdminPage() {
     const [{ data: evs }, { data: att }, { data: attendeeRows }, { count: appCount }] = await Promise.all([
       supabase.from('events').select('id, name, held_on, created_at').eq('cycle_id', cycle.id).order('created_at'),
       supabase.rpc('attendance', { p_cycle: cycle.id }),
-      supabase.from('event_attendees').select('event_id'),
+      fetchAll(() => supabase.from('event_attendees').select('event_id, email, name').order('event_id').order('email').order('name')).then((data) => ({ data })),
       supabase.from('applicants').select('id', { count: 'exact', head: true }).eq('cycle_id', cycle.id),
     ]);
     applicantTotal = appCount || 0;

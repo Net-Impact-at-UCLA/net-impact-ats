@@ -129,12 +129,12 @@ export default async function Home({ searchParams }) {
   let reviewCounts = {};
   if (member.role === 'admin' && roundIds.length) {
     const [allAsg, allCrit] = await Promise.all([
-      fetchAll(() => supabase.from('assignments').select('round_id, applicant_id, member_id').in('round_id', roundIds)),
+      fetchAll(() => supabase.from('assignments').select('round_id, applicant_id, member_id').in('round_id', roundIds).order('round_id').order('applicant_id').order('member_id')),
       fetchAll(() => supabase.from('criteria').select('id, round_id').in('round_id', roundIds)),
     ]);
     const critIds = allCrit.map((c) => c.id);
     const allScores = critIds.length
-      ? await fetchAll(() => supabase.from('scores').select('criterion_id, applicant_id, member_id').in('criterion_id', critIds))
+      ? await fetchAll(() => supabase.from('scores').select('criterion_id, applicant_id, member_id, score').in('criterion_id', critIds).order('criterion_id').order('applicant_id').order('member_id'))
       : [];
     const roundOfCrit = Object.fromEntries(allCrit.map((c) => [c.id, c.round_id]));
     const need = {};

@@ -29,21 +29,21 @@ export async function GET() {
   }
   const none = [];
   const [criteria, roundApplicants, scores, notes, votes, vouches, conflicts, privates, members] = await Promise.all([
-    roundIds.length ? all(() => supabase.from('criteria').select('id, round_id, name, sort_order').in('round_id', roundIds)) : none,
-    roundIds.length ? all(() => supabase.from('round_applicants').select('*').in('round_id', roundIds)) : none,
-    appIds.length ? all(() => supabase.from('scores').select('criterion_id, applicant_id, member_id, score, updated_at').in('applicant_id', appIds)) : none,
-    roundIds.length ? all(() => supabase.from('notes').select('round_id, applicant_id, member_id, criterion_id, body, updated_at').in('round_id', roundIds)) : none,
-    roundIds.length ? all(() => supabase.from('votes').select('round_id, applicant_id, member_id, stars, recused, updated_at').in('round_id', roundIds)) : none,
-    appIds.length ? all(() => supabase.from('vouches').select('applicant_id, member_id, reason, created_at').in('applicant_id', appIds)) : none,
-    appIds.length ? all(() => supabase.from('conflicts').select('applicant_id, member_id, created_at').in('applicant_id', appIds)) : none,
-    appIds.length ? all(() => supabase.from('applicant_private').select('*').in('applicant_id', appIds)) : none,
-    all(() => supabase.from('members').select('id, full_name, email')),
+    roundIds.length ? all(() => supabase.from('criteria').select('id, round_id, name, sort_order').in('round_id', roundIds).order('id')) : none,
+    roundIds.length ? all(() => supabase.from('round_applicants').select('*').in('round_id', roundIds).order('round_id').order('applicant_id')) : none,
+    appIds.length ? all(() => supabase.from('scores').select('criterion_id, applicant_id, member_id, score, updated_at').in('applicant_id', appIds).order('criterion_id').order('applicant_id').order('member_id')) : none,
+    roundIds.length ? all(() => supabase.from('notes').select('id, round_id, applicant_id, member_id, criterion_id, body, updated_at').in('round_id', roundIds).order('id')) : none,
+    roundIds.length ? all(() => supabase.from('votes').select('round_id, applicant_id, member_id, stars, recused, updated_at').in('round_id', roundIds).order('round_id').order('applicant_id').order('member_id')) : none,
+    appIds.length ? all(() => supabase.from('vouches').select('applicant_id, member_id, reason, created_at').in('applicant_id', appIds).order('applicant_id').order('member_id')) : none,
+    appIds.length ? all(() => supabase.from('conflicts').select('applicant_id, member_id, created_at').in('applicant_id', appIds).order('applicant_id').order('member_id')) : none,
+    appIds.length ? all(() => supabase.from('applicant_private').select('*').in('applicant_id', appIds).order('applicant_id')) : none,
+    all(() => supabase.from('members').select('id, full_name, email').order('id')),
   ]);
 
   const [{ data: events }, { data: attendance }, memberNotes] = await Promise.all([
     supabase.from('events').select('id, name, held_on, created_at').eq('cycle_id', cycle.id).order('created_at'),
     supabase.rpc('attendance', { p_cycle: cycle.id }),
-    appIds.length ? all(() => supabase.from('member_notes').select('applicant_id, member_id, body, created_at').in('applicant_id', appIds)) : none,
+    appIds.length ? all(() => supabase.from('member_notes').select('id, applicant_id, member_id, body, created_at').in('applicant_id', appIds).order('id')) : none,
   ]);
 
   const buffer = await buildWorkbook({

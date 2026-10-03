@@ -5,7 +5,7 @@ import NotOnRoster from '@/components/NotOnRoster';
 import CutoffTool from '@/components/CutoffTool';
 import RoundControls from '@/components/RoundControls';
 import AutoRefresh from '@/components/AutoRefresh';
-import { getSession } from '@/lib/session';
+import { getSession, fetchAll } from '@/lib/session';
 
 const PHASE_LABEL = {
   setup: 'Not started',
@@ -50,9 +50,9 @@ export default async function RoundPage({ params }) {
   // Voting progress (admins): how many applicants each member has voted on
   let progress = null;
   if (isAdmin && ['voting', 'closed'].includes(round.phase)) {
-    const [{ data: roster }, { data: votes }, { data: conflicts }] = await Promise.all([
+    const [{ data: roster }, votes, { data: conflicts }] = await Promise.all([
       supabase.from('members').select('id, full_name, email').eq('is_active', true).order('full_name'),
-      supabase.from('votes').select('member_id, applicant_id').eq('round_id', id),
+      fetchAll(() => supabase.from('votes').select('member_id, applicant_id').eq('round_id', id).order('member_id').order('applicant_id')),
       supabase.from('conflicts').select('member_id, applicant_id'),
     ]);
     const total = results.length;
@@ -67,16 +67,16 @@ export default async function RoundPage({ params }) {
   // Admin control bar stats
   let stats = null;
   if (isAdmin) {
-    const [{ count: applicantCount }, { data: asg }, { data: crit }, { count: votesCast }] = await Promise.all([
+    const [{ count: applicantCount }, asg, { data: crit }, { count: votesCast }] = await Promise.all([
       supabase.from('round_applicants').select('applicant_id', { count: 'exact', head: true }).eq('round_id', id),
-      supabase.from('assignments').select('applicant_id, member_id').eq('round_id', id),
+      fetchAll(() => supabase.from('assignments').select('applicant_id, member_id').eq('round_id', id).order('applicant_id').order('member_id')),
       supabase.from('criteria').select('id').eq('round_id', id),
       supabase.from('votes').select('member_id', { count: 'exact', head: true }).eq('round_id', id),
     ]);
     const critIds = (crit || []).map((c) => c.id);
-    const { data: sc } = critIds.length
-      ? await supabase.from('scores').select('applicant_id, member_id').in('criterion_id', critIds)
-      : { data: [] };
+    const sc = critIds.length
+      ? await fetchAll(() => supabase.from('scores').select('criterion_id, applicant_id, member_id').in('criterion_id', critIds).order('criterion_id').order('applicant_id').order('member_id'))
+      : [];
     const have = {};
     (sc || []).forEach((x) => (have[`${x.applicant_id}|${x.member_id}`] = (have[`${x.applicant_id}|${x.member_id}`] || 0) + 1));
     const reviewsDone = (asg || []).filter((a) => critIds.length && (have[`${a.applicant_id}|${a.member_id}`] || 0) >= critIds.length).length;
