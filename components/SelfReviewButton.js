@@ -45,7 +45,7 @@ export default function SelfReviewButton({ roundId, roundName, applicantId, memb
     <section className="self-review">
       <div>
         <h2>Review {firstName} for {roundName}</h2>
-        <p className="muted">They&apos;re not in your queue. Add them to score them alongside their assigned reviewers.</p>
+        <p className="muted">They&apos;re not in your queue. Add them to score them; once you&apos;ve scored every criterion they show as done in your queue.</p>
       </div>
       <button type="button" className="btn btn-primary" onClick={add} disabled={busy}>
         {busy ? 'Adding…' : 'Review this applicant'}

@@ -83,7 +83,7 @@ export default async function ApplicantPage({ params }) {
 
   // "Review this applicant": admins and extra reviewers, for the applicant's current
   // setup/scoring round (not coffee chats, which use My table), if not already a reviewer.
-  const canSelfReview = member.role === 'admin' || member.extra_reviewer;
+  const canSelfReview = true; // any member (database update 013)
   const inRoundIds = (roundApplicants || []).map((ra) => ra.round_id);
   const selfReviewRound = canSelfReview && applicant.status === 'active'
     ? (rounds || [])
