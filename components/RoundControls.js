@@ -145,7 +145,7 @@ export default function RoundControls({ round, nextRoundName, stats }) {
         )}
         {round.phase === 'released' && (
           <>
-            <Link href="/admin/export" className="btn btn-quiet">Download results (.xlsx)</Link>
+            <a href="/admin/export" className="btn btn-quiet" download>Download results (.xlsx)</a>
             <ReopenCutoffButton roundId={round.id} roundName={round.name} nextRoundName={nextRoundName} label={byScores ? 'cut line' : 'cutoff'} />
           </>
         )}
