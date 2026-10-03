@@ -725,3 +725,17 @@ h3 { font-size: 14px; font-weight: 600; }
 .tally-big { font-size: 34px; font-weight: 700; color: var(--evergreen); line-height: 1; }
 .tally-parts { display: flex; gap: 8px 22px; flex-wrap: wrap; font-size: 14px; color: var(--muted); }
 .tally-parts strong { color: var(--ink); }
+
+/* Sortable results */
+.th-sort { all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font: inherit; color: inherit; }
+.th-sort:hover { color: var(--ink); }
+.th-sort:focus-visible { outline: 2px solid var(--evergreen); outline-offset: 2px; border-radius: 3px; }
+.th-arrow { font-size: 10px; color: var(--muted); opacity: 0.6; }
+.th-active { color: var(--ink); font-weight: 600; }
+.th-active .th-arrow { opacity: 1; color: var(--evergreen); }
+th.num .th-sort { justify-content: flex-end; width: 100%; }
+.res-filters { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 12px; }
+.res-filters .chip { font: inherit; font-size: 13px; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); cursor: pointer; }
+.res-filters .chip:hover { color: var(--ink); }
+.res-filters .chip-on { background: var(--ink); border-color: var(--ink); color: #fff; }
+.res-filters .chip-count { opacity: 0.7; margin-left: 2px; }

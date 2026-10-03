@@ -5,7 +5,7 @@ import NotOnRoster from '@/components/NotOnRoster';
 import CutoffTool from '@/components/CutoffTool';
 import RoundControls from '@/components/RoundControls';
 import AutoRefresh from '@/components/AutoRefresh';
-import PushAfterReleaseButton from '@/components/PushAfterReleaseButton';
+import SortableResults from '@/components/SortableResults';
 import { getSession, fetchAll } from '@/lib/session';
 
 const PHASE_LABEL = {
@@ -188,49 +188,15 @@ export default async function RoundPage({ params }) {
 function ResultsTable({ results, cutoff, released, hidden, byScores, canPush, roundId, nextRoundName, cutIds = new Set() }) {
   const fmt = (v) => (v == null ? '·' : Number(v).toFixed(2));
   const table = (
-    <div className="table-wrap">
-      <table className="table results-table">
-        <thead>
-          <tr>
-            <th scope="col" className="num">#</th>
-            <th scope="col">Applicant</th>
-            <th scope="col" className="num">{byScores ? 'Avg review score' : 'Avg vote'}</th>
-            <th scope="col" className="num">{byScores ? 'Reviewers' : 'Votes'}</th>
-            {!byScores && <th scope="col" className="num">Recused</th>}
-            {!byScores && <th scope="col" className="num">Reviewer avg</th>}
-            {released && <th scope="col">Result</th>}
-            {canPush && <th scope="col"><span className="sr-only">Actions</span></th>}
-          </tr>
-        </thead>
-        <tbody>
-          {results.map((r, i) => (
-            <tr key={r.applicant_id} className={released ? (r.advanced ? 'res-in' : 'res-out') : ''}>
-              <td className="num muted">{i + 1}</td>
-              <td>
-                <Link href={`/applicants/${r.applicant_id}`}>{r.full_name}</Link>
-                {!released && r.by_vouch && <span className="vouch-pill vouch-adv">Advancing: hard vouch</span>}
-              </td>
-              <td className="num"><strong>{fmt(r.avg_stars)}</strong></td>
-              <td className="num">{r.vote_count}</td>
-              {!byScores && <td className="num">{r.recusals}</td>}
-              {!byScores && <td className="num">{fmt(r.avg_interview_score)}</td>}
-              {released && <td>{r.advanced ? (r.by_vouch ? (byScores ? 'Advanced (pushed through)' : 'Advanced (hard vouch)') : 'Advanced') : cutIds.has(r.applicant_id) ? 'Not advanced (cut)' : 'Not advanced'}</td>}
-              {canPush && (
-                <td>
-                  <PushAfterReleaseButton
-                    roundId={roundId}
-                    applicantId={r.applicant_id}
-                    name={r.full_name}
-                    nextRoundName={nextRoundName}
-                    state={r.advanced ? (r.by_vouch ? 'pushed' : 'advanced') : cutIds.has(r.applicant_id) ? 'cut' : 'out'}
-                  />
-                </td>
-              )}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <SortableResults
+      results={results}
+      released={released}
+      byScores={byScores}
+      canPush={canPush}
+      roundId={roundId}
+      nextRoundName={nextRoundName}
+      cutIds={[...cutIds]}
+    />
   );
 
   if (hidden) {
