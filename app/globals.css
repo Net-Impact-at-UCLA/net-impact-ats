@@ -656,3 +656,6 @@ h3 { font-size: 14px; font-weight: 600; }
 
 /* With scoring underneath, the left column must not stick (it would slide over the scoring panel) */
 .profile-grid.has-score .profile-side { position: static; }
+.row-reviews { color: var(--muted); }
+.rv-done { color: var(--evergreen); font-weight: 600; }
+.rv-none { color: #7a5410; }

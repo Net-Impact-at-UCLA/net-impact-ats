@@ -138,6 +138,16 @@ export default function ApplicantList({ applicants, rounds, events = [] }) {
                   <StageTrack rounds={rounds} reachedIndex={a.reachedIndex} status={a.status} />
                   <span className="row-stage">
                     {a.status === 'rejected' ? 'Not advanced' : a.status === 'accepted' ? 'Accepted' : rounds[a.reachedIndex]?.name}
+                    {a.reviews && a.status === 'active' && (
+                      <span
+                        className={`row-reviews ${a.reviews.assigned === 0 ? 'rv-none' : a.reviews.done >= a.reviews.assigned ? 'rv-done' : ''}`}
+                        title={`${a.reviews.assigned} assigned, ${a.reviews.done} fully scored, ${a.reviews.started} in progress`}
+                      >
+                        {a.reviews.assigned === 0
+                          ? ', no reviewers yet'
+                          : `, ${a.reviews.done} of ${a.reviews.assigned} review${a.reviews.assigned === 1 ? '' : 's'} done`}
+                      </span>
+                    )}
                   </span>
                 </span>
               </Link>
