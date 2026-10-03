@@ -140,12 +140,12 @@ export default function ApplicantList({ applicants, rounds, events = [] }) {
                     {a.status === 'rejected' ? 'Not advanced' : a.status === 'accepted' ? 'Accepted' : rounds[a.reachedIndex]?.name}
                     {a.reviews && a.status === 'active' && (
                       <span
-                        className={`row-reviews ${a.reviews.assigned === 0 ? 'rv-none' : a.reviews.done >= a.reviews.assigned ? 'rv-done' : ''}`}
-                        title={`${a.reviews.assigned} assigned, ${a.reviews.done} fully scored, ${a.reviews.started} in progress`}
+                        className={`row-reviews ${a.reviews.done === 0 ? 'rv-none' : ''}`}
+                        title={`${a.reviews.done} finished, ${a.reviews.started} in progress, ${a.reviews.assigned} assigned or self-added`}
                       >
-                        {a.reviews.assigned === 0
-                          ? ', no reviewers yet'
-                          : `, ${a.reviews.done} of ${a.reviews.assigned} review${a.reviews.assigned === 1 ? '' : 's'} done`}
+                        {a.reviews.done === 0
+                          ? `, no reviews yet${a.reviews.started ? ` (${a.reviews.started} in progress)` : ''}`
+                          : `, ${a.reviews.done} review${a.reviews.done === 1 ? '' : 's'}`}
                       </span>
                     )}
                   </span>
