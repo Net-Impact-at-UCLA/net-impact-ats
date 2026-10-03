@@ -39,6 +39,11 @@ export default async function RoundPage({ params }) {
     .maybeSingle();
 
   const byScores = round.decide_by === 'scores';
+  let cutIds = new Set();
+  if (round.phase === 'released') {
+    const raRows = await fetchAll(() => supabase.from('round_applicants').select('*').eq('round_id', id).order('applicant_id'));
+    cutIds = new Set(raRows.filter((x) => x.cut_override).map((x) => x.applicant_id));
+  }
   const showDistribution = round.phase === 'closed' || (isAdmin && (round.phase === 'voting' || (byScores && round.phase === 'scoring')));
   const showResults = round.phase === 'released' || (isAdmin && ['voting', 'closed'].includes(round.phase)) || (isAdmin && byScores && round.phase === 'scoring');
 
@@ -164,6 +169,7 @@ export default async function RoundPage({ params }) {
 
         {showResults && results.length > 0 && !(byScores && round.phase !== 'released') && (
           <ResultsTable
+            cutIds={cutIds}
             byScores={byScores}
             canPush={isAdmin && round.phase === 'released'}
             roundId={round.id}
@@ -179,7 +185,7 @@ export default async function RoundPage({ params }) {
   );
 }
 
-function ResultsTable({ results, cutoff, released, hidden, byScores, canPush, roundId, nextRoundName }) {
+function ResultsTable({ results, cutoff, released, hidden, byScores, canPush, roundId, nextRoundName, cutIds = new Set() }) {
   const fmt = (v) => (v == null ? '·' : Number(v).toFixed(2));
   const table = (
     <div className="table-wrap">
@@ -208,18 +214,16 @@ function ResultsTable({ results, cutoff, released, hidden, byScores, canPush, ro
               <td className="num">{r.vote_count}</td>
               {!byScores && <td className="num">{r.recusals}</td>}
               {!byScores && <td className="num">{fmt(r.avg_interview_score)}</td>}
-              {released && <td>{r.advanced ? (r.by_vouch ? (byScores ? 'Advanced (pushed through)' : 'Advanced (hard vouch)') : 'Advanced') : 'Not advanced'}</td>}
+              {released && <td>{r.advanced ? (r.by_vouch ? (byScores ? 'Advanced (pushed through)' : 'Advanced (hard vouch)') : 'Advanced') : cutIds.has(r.applicant_id) ? 'Not advanced (cut)' : 'Not advanced'}</td>}
               {canPush && (
                 <td>
-                  {(!r.advanced || r.by_vouch) && (
-                    <PushAfterReleaseButton
-                      roundId={roundId}
-                      applicantId={r.applicant_id}
-                      name={r.full_name}
-                      nextRoundName={nextRoundName}
-                      pushed={!!(r.advanced && r.by_vouch)}
-                    />
-                  )}
+                  <PushAfterReleaseButton
+                    roundId={roundId}
+                    applicantId={r.applicant_id}
+                    name={r.full_name}
+                    nextRoundName={nextRoundName}
+                    state={r.advanced ? (r.by_vouch ? 'pushed' : 'advanced') : cutIds.has(r.applicant_id) ? 'cut' : 'out'}
+                  />
                 </td>
               )}
             </tr>

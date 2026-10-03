@@ -716,3 +716,5 @@ h3 { font-size: 14px; font-weight: 600; }
 .push-error { font-size: 12px; max-width: 260px; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .results-table .res-out .push-btn { color: var(--evergreen-deep); }
+.btn-danger-quiet { background: transparent; border: 1px solid #e3c4bd; color: #8a3a2b; }
+.btn-danger-quiet:hover { background: #fbf1ee; }
