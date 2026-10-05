@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import NavLink from './NavLink';
 import { createClient } from '@/lib/supabase/server';
 
 export default async function Header({ member, cycleName }) {
@@ -25,11 +26,11 @@ export default async function Header({ member, cycleName }) {
         </Link>
         {cycleName && <span className="cycle-name">{cycleName}</span>}
         <nav className="topnav">
-          <Link href="/">Applicants</Link>
-          {tableOpen && <Link href="/table" className="topnav-table">My table</Link>}
-          {votingOpen && <Link href="/deliberate" className="topnav-table">Deliberations</Link>}
-          <Link href="/rounds">Rounds</Link>
-          {member?.role === 'admin' && <Link href="/admin">Admin</Link>}
+          <NavLink href="/">Applicants</NavLink>
+          {tableOpen && <NavLink href="/table" live>My table</NavLink>}
+          {votingOpen && <NavLink href="/deliberate" live>Deliberations</NavLink>}
+          <NavLink href="/rounds">Rounds</NavLink>
+          {member?.role === 'admin' && <NavLink href="/admin">Admin</NavLink>}
         </nav>
         <div className="topbar-right">
           {member && (

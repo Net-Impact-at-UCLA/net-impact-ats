@@ -476,7 +476,9 @@ h3 { font-size: 14px; font-weight: 600; }
 .chat-card:not(.chat-card-compact) .chat-scores .star svg { width: 30px; height: 30px; }
 .chat-card:not(.chat-card-compact) .chat-scores .star-fill { height: 30px; }
 @media (max-width: 640px) { .table-head { flex-direction: column; align-items: stretch; } }
-.topnav .topnav-table { color: var(--evergreen-deep); background: var(--sage); font-weight: 600; }
+.topnav a.nav-active { color: var(--evergreen-deep); background: var(--sage); font-weight: 600; }
+.topnav a.nav-live { display: inline-flex; align-items: center; gap: 6px; }
+.nav-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--evergreen); animation: live-pulse 2s infinite; }
 /* Coffee chat cards with several criteria: name left, stars right, even rows */
 .chat-cards { grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); }
 .chat-scores-multi { gap: 4px; }
