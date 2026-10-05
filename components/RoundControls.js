@@ -52,7 +52,7 @@ export default function RoundControls({ round, nextRoundName, stats }) {
     next = `Reviews are ${stats.reviewsDone} of ${stats.assigned} done. When scoring is finished, close it to set the cut line on average review scores. A live preview is below.`;
   } else if (round.phase === 'scoring') {
     next = isCoffee
-      ? `Members are grading at their tables (${stats.reviewsDone} chat${stats.reviewsDone === 1 ? '' : 's'} fully scored so far). When coffee chats are over and the club is ready to deliberate, open voting.`
+      ? `Members grade on the My table page (link in the top bar) as they chat (${stats.reviewsDone} chat${stats.reviewsDone === 1 ? '' : 's'} fully scored so far). When coffee chats are over and the club is ready to deliberate, open voting.`
       : `Reviews are ${stats.reviewsDone} of ${stats.assigned} done. When the club is ready to deliberate, open voting.`;
   } else if (round.phase === 'voting') {
     next = `Voting is open (${stats.votesCast} vote${stats.votesCast === 1 ? '' : 's'} cast so far). After discussing everyone, close voting to reveal the blind cutoff chart.`;
@@ -102,6 +102,9 @@ export default function RoundControls({ round, nextRoundName, stats }) {
             </PhaseButton>
             <PhaseButton roundId={round.id} to="setup">Pause scoring</PhaseButton>
           </>
+        )}
+        {round.phase === 'scoring' && isCoffee && (
+          <Link href="/table" className="btn btn-primary">Go to My table</Link>
         )}
         {round.phase === 'scoring' && !byScores && (
           <>
