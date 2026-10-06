@@ -167,7 +167,7 @@ export default async function AdminPage() {
                     </span>
                     <span className="round-actions">
                       {r.phase === 'setup' && (
-                        <PhaseButton id={r.id} to="scoring" primary disabled={r.assignedCount === 0 && r.stage !== 'coffee_chat'}>
+                        <PhaseButton id={r.id} to="scoring" primary disabled={r.assignedCount === 0 && !(r.self_select ?? r.stage === 'coffee_chat')}>
                           Open scoring
                         </PhaseButton>
                       )}

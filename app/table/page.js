@@ -11,13 +11,19 @@ export default async function TablePage() {
   if (!member) return <NotOnRoster email={user?.email} />;
   const cycle = await getActiveCycle(supabase);
 
-  const { data: round } = cycle
-    ? await supabase.from('rounds').select('id, name, phase').eq('cycle_id', cycle.id).eq('stage', 'coffee_chat').maybeSingle()
-    : { data: null };
+  const { data: allRounds } = cycle
+    ? await supabase.from('rounds').select('*').eq('cycle_id', cycle.id).order('sort_order')
+    : { data: [] };
+  const isSelf = (r) => (r.self_select ?? r.stage === 'coffee_chat');
+  // The latest self-pick round with scoring open; otherwise Coffee Chats (for makeups)
+  const round =
+    [...(allRounds || [])].filter((r) => isSelf(r) && r.phase === 'scoring').pop() ||
+    (allRounds || []).find((r) => r.stage === 'coffee_chat') ||
+    null;
 
   // After scoring closes, the table stays open for makeup coffee chats only
   let makeupIds = null;
-  if (round && ['voting', 'closed', 'released'].includes(round.phase)) {
+  if (round && round.stage === 'coffee_chat' && ['voting', 'closed', 'released'].includes(round.phase)) {
     const { data: mk } = await supabase.from('round_applicants').select('*').eq('round_id', round.id).eq('makeup', true);
     makeupIds = new Set((mk || []).filter((x) => x.advanced == null).map((x) => x.applicant_id));
   }
@@ -30,7 +36,7 @@ export default async function TablePage() {
         <main className="page">
           <div className="empty">
             <h1>My table</h1>
-            <p>This page opens when an admin starts Coffee Chats scoring.</p>
+            <p>This page opens when an admin starts scoring for a round where members pick who they grade (like Coffee Chats or R1).</p>
             <p><Link href="/">Back to applicants</Link></p>
           </div>
         </main>

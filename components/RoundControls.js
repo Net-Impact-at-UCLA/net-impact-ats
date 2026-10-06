@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { setRoundPhase, setDecideBy } from '@/app/admin/actions';
+import { setRoundPhase, setDecideBy, setSelfSelect } from '@/app/admin/actions';
 import ConfirmButton from './ConfirmButton';
 import ReopenCutoffButton from './ReopenCutoffButton';
 
@@ -36,15 +36,18 @@ function PhaseButton({ roundId, to, primary, disabled, confirm, children }) {
 // stats: { applicants, assigned, reviewsDone, votesCast, voters }
 export default function RoundControls({ round, nextRoundName, stats }) {
   const byScores = round.decide_by === 'scores';
+  const selfPick = round.self_select ?? round.stage === 'coffee_chat';
   const STEPS = byScores ? SCORE_STEPS : VOTE_STEPS;
   const idx = STEPS.findIndex((s) => s.key === round.phase);
   const isCoffee = round.stage === 'coffee_chat';
-  const noReviewers = stats.assigned === 0 && !isCoffee;
+  const noReviewers = stats.assigned === 0 && !selfPick;
 
   let next = '';
   if (round.phase === 'setup') {
     next = isCoffee
       ? `${stats.applicants} applicant${stats.applicants === 1 ? '' : 's'} in this round. Open scoring when coffee chats start; members add people at their tables.`
+      : selfPick
+      ? `${stats.applicants} applicant${stats.applicants === 1 ? '' : 's'} in this round. No assigning needed: open scoring when interviews start, and graders add the applicants in their room on My table.`
       : noReviewers
         ? `${stats.applicants} applicant${stats.applicants === 1 ? '' : 's'} in this round, but no reviewers are assigned yet. Assign reviewers on the Admin page first.`
         : `${stats.assigned} review${stats.assigned === 1 ? '' : 's'} assigned. Open scoring when reviewers should start.`;
@@ -53,6 +56,8 @@ export default function RoundControls({ round, nextRoundName, stats }) {
   } else if (round.phase === 'scoring') {
     next = isCoffee
       ? `Members grade on the My table page (link in the top bar) as they chat (${stats.reviewsDone} chat${stats.reviewsDone === 1 ? '' : 's'} fully scored so far). When coffee chats are over and the club is ready to deliberate, open voting.`
+      : selfPick
+      ? `Graders add and grade applicants on My table (${stats.reviewsDone} review${stats.reviewsDone === 1 ? '' : 's'} fully scored so far). When interviews are over and the club is ready to deliberate, open voting.`
       : `Reviews are ${stats.reviewsDone} of ${stats.assigned} done. When the club is ready to deliberate, open voting.`;
   } else if (round.phase === 'voting') {
     next = `Voting is open (${stats.votesCast} vote${stats.votesCast === 1 ? '' : 's'} cast so far). After discussing everyone, close voting to reveal the blind cutoff chart.`;
@@ -75,6 +80,14 @@ export default function RoundControls({ round, nextRoundName, stats }) {
         ))}
       </ol>
       <p className="round-next">{next}</p>
+      {['setup', 'scoring'].includes(round.phase) && !isCoffee && round.stage !== 'application' && (
+        <form action={setSelfSelect} className="decide-by">
+          <input type="hidden" name="roundId" value={round.id} />
+          <span className="field-label">Who grades whom:</span>
+          <button name="mode" value="self" className={`seg ${selfPick ? 'seg-on' : ''}`} disabled={selfPick}>Members pick on My table</button>
+          <button name="mode" value="assigned" className={`seg ${!selfPick ? 'seg-on' : ''}`} disabled={!selfPick}>Assigned by admin</button>
+        </form>
+      )}
       {['setup', 'scoring'].includes(round.phase) && !isCoffee && (
         <form action={setDecideBy} className="decide-by">
           <input type="hidden" name="roundId" value={round.id} />
@@ -87,7 +100,7 @@ export default function RoundControls({ round, nextRoundName, stats }) {
         {round.phase === 'setup' && (
           <>
             <PhaseButton roundId={round.id} to="scoring" primary disabled={noReviewers}>Open scoring</PhaseButton>
-            {!isCoffee && <Link href="/admin" className="btn btn-quiet">Assign reviewers</Link>}
+            {!selfPick && <Link href="/admin" className="btn btn-quiet">Assign reviewers</Link>}
           </>
         )}
         {round.phase === 'scoring' && byScores && (
@@ -103,8 +116,8 @@ export default function RoundControls({ round, nextRoundName, stats }) {
             <PhaseButton roundId={round.id} to="setup">Pause scoring</PhaseButton>
           </>
         )}
-        {round.phase === 'scoring' && isCoffee && (
-          <Link href="/table" className="btn btn-primary">Go to My table</Link>
+        {round.phase === 'scoring' && selfPick && (
+          <Link href="/table" className="btn btn-quiet">Go to My table</Link>
         )}
         {round.phase === 'scoring' && !byScores && (
           <>

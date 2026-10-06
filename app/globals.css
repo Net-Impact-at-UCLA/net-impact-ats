@@ -754,3 +754,4 @@ th.num .th-sort { justify-content: flex-end; width: 100%; }
 .row-actions { display: inline-flex; gap: 8px; align-items: flex-start; flex-wrap: wrap; }
 .btn-makeup { background: transparent; border: 1px solid #cfc8f2; color: #4b3f8f; }
 .btn-makeup:hover { background: #f6f4fd; }
+.chat-section-notes { display: inline-block; margin-top: 4px; font-size: 13px; color: var(--evergreen-deep); }

@@ -8,6 +8,8 @@ import StarInput from './StarInput';
 // Coffee chat "My table": search applicants as they sit down, add them to the
 // current rotation, and grade each one in their own box.
 export default function TableBoard({ round, criteria, applicants, initialEntries, memberId }) {
+  const isCoffee = round.stage === 'coffee_chat';
+  const unit = isCoffee ? 'Rotation' : 'Group';
   const supabase = useMemo(() => createClient(), []);
   const [entries, setEntries] = useState(initialEntries);
   const [group, setGroup] = useState(() => Math.max(1, ...initialEntries.map((e) => e.group)));
@@ -32,7 +34,7 @@ export default function TableBoard({ round, criteria, applicants, initialEntries
       .from('assignments')
       .insert({ round_id: round.id, applicant_id: a.id, member_id: memberId, group_no: group });
     if (error) {
-      setMessage({ kind: 'error', text: `Couldn’t add ${a.name}. Check that Coffee Chats scoring is still open.` });
+      setMessage({ kind: 'error', text: `Couldn’t add ${a.name}. Check that ${round.name} scoring is still open.` });
       return;
     }
     setEntries((es) => [...es, { applicantId: a.id, group, addedAt: new Date().toISOString(), scores: {}, notes: '' }]);
@@ -63,10 +65,12 @@ export default function TableBoard({ round, criteria, applicants, initialEntries
       <div className="table-head">
         <div>
           <h1>My table</h1>
-          <p className="muted">{round.name}: search each applicant as they sit down, then grade them here.</p>
+          <p className="muted">
+            {round.name}: {isCoffee ? 'search each applicant as they sit down, then grade them here.' : 'search for the applicants in your room, add them, and grade them here.'}
+          </p>
         </div>
         <button type="button" className="btn btn-quiet" onClick={nextRotation} disabled={current.length === 0}>
-          Next rotation
+          Next {unit.toLowerCase()}
         </button>
       </div>
 
@@ -89,7 +93,7 @@ export default function TableBoard({ round, criteria, applicants, initialEntries
         />
         {query.trim() && (
           <ul className="table-results" role="listbox" aria-label="Matching applicants">
-            {results.length === 0 && <li className="table-result-empty">No applicant in Coffee Chats matches “{query.trim()}”.</li>}
+            {results.length === 0 && <li className="table-result-empty">No applicant in {round.name} matches “{query.trim()}”.</li>}
             {results.map((a) => {
               const isAdded = added.has(a.id);
               return (
@@ -114,12 +118,12 @@ export default function TableBoard({ round, criteria, applicants, initialEntries
         {message && <p className={message.kind === 'error' ? 'form-error' : 'form-ok'} role="alert">{message.text}</p>}
       </div>
 
-      <section className="rotation" aria-label={`Rotation ${group}, at your table now`}>
+      <section className="rotation" aria-label={`${unit} ${group}, at your table now`}>
         <h2>
-          Rotation {group} <span className="muted">at your table now</span>
+          {unit} {group} <span className="muted">{isCoffee ? 'at your table now' : 'in your room now'}</span>
         </h2>
         {current.length === 0 ? (
-          <p className="muted rotation-empty">Search for the applicants who just sat down to add them here.</p>
+          <p className="muted rotation-empty">{isCoffee ? 'Search for the applicants who just sat down to add them here.' : 'Search for each applicant in your group to add them here.'}</p>
         ) : (
           <div className="chat-cards">
             {current.map((e) => (
@@ -140,8 +144,8 @@ export default function TableBoard({ round, criteria, applicants, initialEntries
       </section>
 
       {earlier.map((g) => (
-        <section key={g} className="rotation rotation-earlier" aria-label={`Rotation ${g}`}>
-          <h2>Rotation {g}</h2>
+        <section key={g} className="rotation rotation-earlier" aria-label={`${unit} ${g}`}>
+          <h2>{unit} {g}</h2>
           <div className="chat-cards chat-cards-compact">
             {entries.filter((e) => e.group === g).map((e) => (
               <ChatCard
@@ -215,6 +219,9 @@ function ChatCard({ entry, applicant, criteria, round, memberId, supabase, compa
           <h3>{applicant.name}</h3>
           {applicant.pronouns && <p className="muted">{applicant.pronouns}</p>}
           {!compact && applicant.detail && <p className="muted chat-detail">{applicant.detail}</p>}
+          {round.stage !== 'coffee_chat' && (
+            <a href={`/applicants/${applicant.id}`} target="_blank" rel="noreferrer" className="chat-section-notes">Section notes</a>
+          )}
         </div>
       </div>
       <div className={`chat-scores ${criteria.length > 1 ? 'chat-scores-multi' : ''}`}>
@@ -228,7 +235,7 @@ function ChatCard({ entry, applicant, criteria, round, memberId, supabase, compa
       <textarea
         className="textarea textarea-sm"
         rows={compact ? 2 : criteria.length > 1 ? 3 : 4}
-        placeholder="Notes from your conversation"
+        placeholder={round.stage === 'coffee_chat' ? 'Notes from your conversation' : 'Overall notes on their performance'}
         value={notes}
         onChange={(e) => setNotes(e.target.value)}
         onBlur={saveNotes}

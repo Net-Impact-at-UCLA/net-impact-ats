@@ -10,10 +10,10 @@ export default async function Header({ member, cycleName }) {
     const supabase = await createClient();
     const { data } = await supabase
       .from('rounds')
-      .select('stage, phase, cycles!inner(is_active)')
+      .select('*, cycles!inner(is_active)')
       .eq('cycles.is_active', true)
       .in('phase', ['scoring', 'voting']);
-    tableOpen = (data || []).some((r) => r.stage === 'coffee_chat' && r.phase === 'scoring');
+    tableOpen = (data || []).some((r) => (r.self_select ?? r.stage === 'coffee_chat') && r.phase === 'scoring');
     if (!tableOpen) {
       const { data: mk } = await supabase
         .from('round_applicants')

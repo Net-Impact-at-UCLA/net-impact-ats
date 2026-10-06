@@ -266,3 +266,17 @@ export async function setDecideBy(formData) {
   revalidatePath(`/rounds/${roundId}`);
   revalidatePath('/admin');
 }
+
+// Who grades whom: members pick on My table ('self') or admins assign ('assigned')
+export async function setSelfSelect(formData) {
+  const { supabase } = await requireAdmin();
+  const roundId = String(formData.get('roundId'));
+  const mode = String(formData.get('mode'));
+  if (!['self', 'assigned'].includes(mode)) return;
+  const { data: round } = await supabase.from('rounds').select('*').eq('id', roundId).maybeSingle();
+  if (!round || !['setup', 'scoring'].includes(round.phase) || ['application', 'coffee_chat'].includes(round.stage)) return;
+  await supabase.from('rounds').update({ self_select: mode === 'self' }).eq('id', roundId);
+  revalidatePath(`/rounds/${roundId}`);
+  revalidatePath('/admin');
+  revalidatePath('/table');
+}
