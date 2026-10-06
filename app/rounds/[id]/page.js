@@ -199,6 +199,7 @@ export default async function RoundPage({ params }) {
         {showResults && results.length > 0 && !(byScores && round.phase !== 'released') && (
           <ResultsTable
             cutIds={cutIds}
+            isCoffee={round.stage === 'coffee_chat'}
             byScores={byScores}
             canPush={isAdmin && round.phase === 'released'}
             roundId={round.id}
@@ -214,7 +215,7 @@ export default async function RoundPage({ params }) {
   );
 }
 
-function ResultsTable({ results, cutoff, released, hidden, byScores, canPush, roundId, nextRoundName, cutIds = new Set() }) {
+function ResultsTable({ results, cutoff, released, hidden, byScores, canPush, roundId, nextRoundName, cutIds = new Set(), isCoffee = false }) {
   const fmt = (v) => (v == null ? '·' : Number(v).toFixed(2));
   const table = (
     <SortableResults
@@ -225,6 +226,7 @@ function ResultsTable({ results, cutoff, released, hidden, byScores, canPush, ro
       roundId={roundId}
       nextRoundName={nextRoundName}
       cutIds={[...cutIds]}
+      isCoffee={isCoffee}
     />
   );
 

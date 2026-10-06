@@ -751,3 +751,6 @@ th.num .th-sort { justify-content: flex-end; width: 100%; }
 .makeup-banner { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; background: #f6f4fd; border: 1px solid #ddd8f6; border-radius: var(--radius-s); padding: 10px 14px; font-size: 14px; margin: 0 0 16px; }
 .makeup-banner .makeup-pill { margin: 0; }
 .makeup-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.row-actions { display: inline-flex; gap: 8px; align-items: flex-start; flex-wrap: wrap; }
+.btn-makeup { background: transparent; border: 1px solid #cfc8f2; color: #4b3f8f; }
+.btn-makeup:hover { background: #f6f4fd; }

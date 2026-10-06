@@ -3,10 +3,11 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import PushAfterReleaseButton from './PushAfterReleaseButton';
+import MoveToMakeupButton from './MoveToMakeupButton';
 
 const fmt = (v) => (v == null ? '·' : Number(v).toFixed(2));
 
-export default function SortableResults({ results, released, byScores, canPush, roundId, nextRoundName, cutIds = [] }) {
+export default function SortableResults({ results, released, byScores, canPush, roundId, nextRoundName, cutIds = [], isCoffee = false }) {
   const cut = useMemo(() => new Set(cutIds), [cutIds]);
   const rows = useMemo(
     () =>
@@ -128,13 +129,16 @@ export default function SortableResults({ results, released, byScores, canPush, 
                 {released && <td>{r.label}</td>}
                 {canPush && (
                   <td>
-                    <PushAfterReleaseButton
-                      roundId={roundId}
-                      applicantId={r.applicant_id}
-                      name={r.full_name}
-                      nextRoundName={nextRoundName}
-                      state={r.state}
-                    />
+                    <span className="row-actions">
+                      <PushAfterReleaseButton
+                        roundId={roundId}
+                        applicantId={r.applicant_id}
+                        name={r.full_name}
+                        nextRoundName={nextRoundName}
+                        state={r.state}
+                      />
+                      {isCoffee && <MoveToMakeupButton roundId={roundId} applicantId={r.applicant_id} name={r.full_name} />}
+                    </span>
                   </td>
                 )}
               </tr>

@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import MoveToMakeupButton from './MoveToMakeupButton';
 
 // Admin: decide makeup coffee chats after the main cutoff.
 // rows: [{ id, name, avg, graders, advanced }]
@@ -60,6 +61,7 @@ export default function MakeupDecisions({ roundId, rows, released, nextRoundName
                         <button type="button" className="btn btn-danger-quiet push-btn" disabled={busy === r.id} onClick={() => decide(r, 'out')}>
                           Not advancing
                         </button>
+                        <MoveToMakeupButton roundId={roundId} applicantId={r.id} name={r.name} back />
                       </>
                     ) : (
                       <button type="button" className="link-btn" disabled={busy === r.id} onClick={() => decide(r, 'pending')}>Undo</button>
