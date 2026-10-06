@@ -6,6 +6,7 @@ import CutoffTool from '@/components/CutoffTool';
 import RoundControls from '@/components/RoundControls';
 import AutoRefresh from '@/components/AutoRefresh';
 import SortableResults from '@/components/SortableResults';
+import MakeupDecisions from '@/components/MakeupDecisions';
 import { getSession, fetchAll } from '@/lib/session';
 
 const PHASE_LABEL = {
@@ -39,6 +40,30 @@ export default async function RoundPage({ params }) {
     .maybeSingle();
 
   const byScores = round.decide_by === 'scores';
+  // Makeup coffee chats (admins)
+  let makeupRows = [];
+  if (isAdmin && round.stage === 'coffee_chat') {
+    const mk = await fetchAll(() => supabase.from('round_applicants').select('*, applicants(full_name)').eq('round_id', id).eq('makeup', true).order('applicant_id'));
+    if (mk.length) {
+      const { data: cr } = await supabase.from('criteria').select('id').eq('round_id', id);
+      const cIds = (cr || []).map((c) => c.id);
+      const sc = cIds.length
+        ? await fetchAll(() => supabase.from('scores').select('criterion_id, applicant_id, member_id, score').in('criterion_id', cIds).in('applicant_id', mk.map((m) => m.applicant_id)).order('criterion_id').order('applicant_id').order('member_id'))
+        : [];
+      makeupRows = mk
+        .map((m) => {
+          const mine = sc.filter((x) => x.applicant_id === m.applicant_id);
+          return {
+            id: m.applicant_id,
+            name: m.applicants?.full_name || 'Applicant',
+            avg: mine.length ? mine.reduce((t, x) => t + Number(x.score), 0) / mine.length : null,
+            graders: new Set(mine.map((x) => x.member_id)).size,
+            advanced: m.advanced,
+          };
+        })
+        .sort((a, b) => a.name.localeCompare(b.name));
+    }
+  }
   let cutIds = new Set();
   if (round.phase === 'released') {
     const raRows = await fetchAll(() => supabase.from('round_applicants').select('*').eq('round_id', id).order('applicant_id'));
@@ -165,6 +190,10 @@ export default async function RoundPage({ params }) {
               ))}
             </ul>
           </details>
+        )}
+
+        {makeupRows.length > 0 && (
+          <MakeupDecisions roundId={round.id} rows={makeupRows} released={round.phase === 'released'} nextRoundName={nextRound?.name} />
         )}
 
         {showResults && results.length > 0 && !(byScores && round.phase !== 'released') && (

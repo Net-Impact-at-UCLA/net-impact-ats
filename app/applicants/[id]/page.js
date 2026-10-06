@@ -11,6 +11,7 @@ import RemoveApplicantButton from '@/components/RemoveApplicantButton';
 import VotePanel from '@/components/VotePanel';
 import SelfReviewButton from '@/components/SelfReviewButton';
 import AdvanceByVouchButton from '@/components/AdvanceByVouchButton';
+import MakeupToggle from '@/components/MakeupToggle';
 import MemberNotes from '@/components/MemberNotes';
 import AttendanceBadges from '@/components/AttendanceBadges';
 import ReviewSummary from '@/components/ReviewSummary';
@@ -186,18 +187,19 @@ export default async function ApplicantPage({ params }) {
   }
 
   // Voting panel for the round currently in deliberation
-  const votingRound = (rounds || []).find((r) => r.phase === 'voting' && myRoundIdsForApplicant.includes(r.id));
+  const isMakeupIn = (rid) => (roundApplicants || []).some((x) => x.round_id === rid && x.makeup);
+  const votingRound = (rounds || []).find((r) => r.phase === 'voting' && myRoundIdsForApplicant.includes(r.id) && !isMakeupIn(r.id));
   let vote = null;
   if (votingRound) {
     const [{ data: inRound }, { data: myVotes }, { data: myConflicts }] = await Promise.all([
-      supabase.from('round_applicants').select('applicant_id, applicants(full_name, status)').eq('round_id', votingRound.id),
+      supabase.from('round_applicants').select('*, applicants(full_name, status)').eq('round_id', votingRound.id),
       supabase.from('votes').select('applicant_id, stars, recused').eq('round_id', votingRound.id).eq('member_id', member.id),
       supabase.from('conflicts').select('applicant_id').eq('member_id', member.id),
     ]);
     const conflictSet = new Set((myConflicts || []).map((c) => c.applicant_id));
     const votedSet = new Set((myVotes || []).map((v) => v.applicant_id));
     const pool = (inRound || [])
-      .filter((x) => x.applicants?.status === 'active' && !conflictSet.has(x.applicant_id))
+      .filter((x) => !x.makeup && x.applicants?.status === 'active' && !conflictSet.has(x.applicant_id))
       .map((x) => ({ id: x.applicant_id, name: x.applicants.full_name }))
       .sort((a, b) => a.name.localeCompare(b.name));
     const todo = pool.filter((p) => p.id !== id && !votedSet.has(p.id));
@@ -254,6 +256,25 @@ export default async function ApplicantPage({ params }) {
               if (!dRound) return null;
               const ra = (roundApplicants || []).find((x) => x.round_id === dRound.id);
               return <AdvanceByVouchButton roundId={dRound.id} applicantId={id} firstName={firstName} initialOn={!!ra?.advance_override} />;
+            })()}
+
+            {(() => {
+              const coffee = (rounds || []).find((r) => r.stage === 'coffee_chat');
+              const ra = coffee && (roundApplicants || []).find((x) => x.round_id === coffee.id);
+              if (!ra) return null;
+              const pending = ra.makeup && ra.advanced == null;
+              if (!isAdmin) return pending ? <p className="makeup-note"><span className="makeup-pill">Makeup coffee chat</span> Held out of the vote and decided separately.</p> : null;
+              if (ra.advanced != null && !ra.makeup) return null;
+              return (
+                <MakeupToggle
+                  roundId={coffee.id}
+                  applicantId={id}
+                  firstName={firstName}
+                  on={!!ra.makeup}
+                  decided={ra.advanced != null}
+                  released={coffee.phase === 'released'}
+                />
+              );
             })()}
 
             <StageTrack rounds={rounds || []} reachedIndex={withStage.reachedIndex} status={applicant.status} showLabels />

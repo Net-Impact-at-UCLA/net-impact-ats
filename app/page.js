@@ -40,9 +40,13 @@ export default async function Home({ searchParams }) {
   ]);
 
   const roundIds = (rounds || []).map((r) => r.id);
-  const { data: roundApplicants } = roundIds.length
-    ? await supabase.from('round_applicants').select('round_id, applicant_id').in('round_id', roundIds)
-    : { data: [] };
+  const roundApplicants = roundIds.length
+    ? await fetchAll(() => supabase.from('round_applicants').select('*').in('round_id', roundIds).order('round_id').order('applicant_id'))
+    : [];
+  const coffeeRound = (rounds || []).find((r) => r.stage === 'coffee_chat');
+  const makeupPending = new Set(
+    roundApplicants.filter((x) => coffeeRound && x.round_id === coffeeRound.id && x.makeup && x.advanced == null).map((x) => x.applicant_id)
+  );
 
   // This member's review queue: assignments in rounds that are open for scoring
   const openRounds = (rounds || []).filter((r) => r.phase === 'scoring');
@@ -101,7 +105,7 @@ export default async function Home({ searchParams }) {
   if (votingRounds.length) {
     const vIds = votingRounds.map((r) => r.id);
     const [{ data: inVote }, { data: myVotes }, { data: myConflicts }] = await Promise.all([
-      supabase.from('round_applicants').select('round_id, applicant_id').in('round_id', vIds),
+      supabase.from('round_applicants').select('*').in('round_id', vIds),
       supabase.from('votes').select('round_id, applicant_id, stars, recused').eq('member_id', member.id).in('round_id', vIds),
       supabase.from('conflicts').select('applicant_id').eq('member_id', member.id),
     ]);
@@ -109,7 +113,7 @@ export default async function Home({ searchParams }) {
     const conflictSet = new Set((myConflicts || []).map((c) => c.applicant_id));
     const voteOf = Object.fromEntries((myVotes || []).map((v) => [`${v.round_id}|${v.applicant_id}`, v]));
     voteQueue = (inVote || [])
-      .filter((x) => byIdV[x.applicant_id]?.status === 'active' && !conflictSet.has(x.applicant_id))
+      .filter((x) => !x.makeup && byIdV[x.applicant_id]?.status === 'active' && !conflictSet.has(x.applicant_id))
       .map((x) => {
         const v = voteOf[`${x.round_id}|${x.applicant_id}`];
         const roundName = votingRounds.find((r) => r.id === x.round_id)?.name;
@@ -167,6 +171,7 @@ export default async function Home({ searchParams }) {
     ...a,
     headshotUrl: urls[a.headshot_path] || null,
     vouches: vouchCount[a.id] || 0,
+    makeup: makeupPending.has(a.id),
     reviews:
       member.role === 'admin'
         ? reviewCounts[`${a.currentRoundId}|${a.id}`] || { assigned: 0, done: 0, started: 0 }

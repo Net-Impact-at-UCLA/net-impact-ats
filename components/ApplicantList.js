@@ -155,6 +155,7 @@ export default function ApplicantList({ applicants, rounds, events = [] }) {
                       </span>
                     )}
                   </span>
+                  {a.makeup && <span className="makeup-pill">Makeup coffee chat</span>}
                   <span className="row-meta">{[a.majors, a.grad_year && `Class of ${a.grad_year}`].filter(Boolean).join(', ')}</span>
                   {a.events.length > 0 && (
                     <span className="row-events">

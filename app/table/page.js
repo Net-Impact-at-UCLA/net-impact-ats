@@ -15,7 +15,15 @@ export default async function TablePage() {
     ? await supabase.from('rounds').select('id, name, phase').eq('cycle_id', cycle.id).eq('stage', 'coffee_chat').maybeSingle()
     : { data: null };
 
-  if (!round || round.phase !== 'scoring') {
+  // After scoring closes, the table stays open for makeup coffee chats only
+  let makeupIds = null;
+  if (round && ['voting', 'closed', 'released'].includes(round.phase)) {
+    const { data: mk } = await supabase.from('round_applicants').select('*').eq('round_id', round.id).eq('makeup', true);
+    makeupIds = new Set((mk || []).filter((x) => x.advanced == null).map((x) => x.applicant_id));
+  }
+  const makeupsOnly = makeupIds != null;
+
+  if (!round || (round.phase !== 'scoring' && !(makeupsOnly && makeupIds.size))) {
     return (
       <>
         <Header member={member} cycleName={cycle?.name} />
@@ -32,7 +40,7 @@ export default async function TablePage() {
 
   const [{ data: criteria }, { data: inRound }, { data: mine }, { data: myConflicts }] = await Promise.all([
     supabase.from('criteria').select('id, name, min_score, max_score, sort_order').eq('round_id', round.id).order('sort_order'),
-    supabase.from('round_applicants').select('applicant_id, applicants(id, full_name, pronouns, majors, grad_year, headshot_path, status)').eq('round_id', round.id),
+    supabase.from('round_applicants').select('*, applicants(id, full_name, pronouns, majors, grad_year, headshot_path, status)').eq('round_id', round.id),
     supabase.from('assignments').select('applicant_id, group_no, added_at').eq('round_id', round.id).eq('member_id', member.id),
     supabase.from('conflicts').select('applicant_id').eq('member_id', member.id),
   ]);
@@ -45,6 +53,7 @@ export default async function TablePage() {
   ]);
 
   const people = (inRound || [])
+    .filter((x) => !makeupsOnly || makeupIds.has(x.applicant_id))
     .map((x) => x.applicants)
     .filter((a) => a && a.status === 'active')
     .sort((a, b) => a.full_name.localeCompare(b.full_name));
@@ -60,7 +69,7 @@ export default async function TablePage() {
     conflict: conflictIds.includes(p.id),
   }));
 
-  const entries = (mine || []).map((m) => {
+  const entries = (mine || []).filter((m) => !makeupsOnly || makeupIds.has(m.applicant_id)).map((m) => {
     const scores = {};
     (myScores || []).filter((s) => s.applicant_id === m.applicant_id).forEach((s) => (scores[s.criterion_id] = Number(s.score)));
     const notes = (myNotes || []).find((n) => n.applicant_id === m.applicant_id && !n.criterion_id)?.body || '';
@@ -71,6 +80,11 @@ export default async function TablePage() {
     <>
       <Header member={member} cycleName={cycle?.name} />
       <main className="page table-page">
+        {makeupsOnly && (
+          <p className="makeup-banner">
+            <span className="makeup-pill">Makeup coffee chats</span> Regular scoring is closed. Only applicants doing a makeup chat can be added and graded here.
+          </p>
+        )}
         <TableBoard round={round} criteria={criteria || []} applicants={applicants} initialEntries={entries} memberId={member.id} />
       </main>
     </>

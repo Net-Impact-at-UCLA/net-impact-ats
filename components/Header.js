@@ -14,6 +14,18 @@ export default async function Header({ member, cycleName }) {
       .eq('cycles.is_active', true)
       .in('phase', ['scoring', 'voting']);
     tableOpen = (data || []).some((r) => r.stage === 'coffee_chat' && r.phase === 'scoring');
+    if (!tableOpen) {
+      const { data: mk } = await supabase
+        .from('round_applicants')
+        .select('applicant_id, rounds!inner(stage, phase, cycles!inner(is_active))')
+        .eq('makeup', true)
+        .is('advanced', null)
+        .eq('rounds.stage', 'coffee_chat')
+        .eq('rounds.cycles.is_active', true)
+        .in('rounds.phase', ['voting', 'closed', 'released'])
+        .limit(1);
+      tableOpen = (mk || []).length > 0;
+    }
     votingOpen = (data || []).some((r) => r.phase === 'voting');
   }
 

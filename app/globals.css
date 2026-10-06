@@ -741,3 +741,13 @@ th.num .th-sort { justify-content: flex-end; width: 100%; }
 .res-filters .chip:hover { color: var(--ink); }
 .res-filters .chip-on { background: var(--ink); border-color: var(--ink); color: #fff; }
 .res-filters .chip-count { opacity: 0.7; margin-left: 2px; }
+
+/* Makeup coffee chats */
+.makeup-pill { display: inline-block; font-size: 12px; font-weight: 600; color: #4b3f8f; background: #eeebfb; border-radius: 999px; padding: 2px 9px; margin-left: 6px; white-space: nowrap; }
+.makeup-box { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 14px; }
+.makeup-box .makeup-pill { margin-left: 0; }
+.makeup-note { font-size: 14px; color: var(--muted); }
+.makeup-note .makeup-pill { margin: 0 6px 0 0; }
+.makeup-banner { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; background: #f6f4fd; border: 1px solid #ddd8f6; border-radius: var(--radius-s); padding: 10px 14px; font-size: 14px; margin: 0 0 16px; }
+.makeup-banner .makeup-pill { margin: 0; }
+.makeup-actions { display: flex; gap: 8px; flex-wrap: wrap; }
