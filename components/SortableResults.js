@@ -12,9 +12,13 @@ export default function SortableResults({ results, released, byScores, canPush, 
   const rows = useMemo(
     () =>
       results.map((r, i) => {
-        const state = r.advanced ? (r.by_vouch ? 'pushed' : 'advanced') : cut.has(r.applicant_id) ? 'cut' : 'out';
+        const state = r.is_makeup
+          ? (r.advanced ? 'makeup-in' : 'makeup-out')
+          : r.advanced ? (r.by_vouch ? 'pushed' : 'advanced') : cut.has(r.applicant_id) ? 'cut' : 'out';
         const label =
-          state === 'pushed' ? (byScores ? 'Advanced (pushed through)' : 'Advanced (hard vouch)')
+          state === 'makeup-in' ? 'Advanced (makeup)'
+          : state === 'makeup-out' ? 'Not advanced (makeup)'
+          : state === 'pushed' ? (byScores ? 'Advanced (pushed through)' : 'Advanced (hard vouch)')
           : state === 'advanced' ? 'Advanced'
           : state === 'cut' ? 'Not advanced (cut)'
           : 'Not advanced';
@@ -27,8 +31,9 @@ export default function SortableResults({ results, released, byScores, canPush, 
   const [filter, setFilter] = useState('all');
 
   const counts = useMemo(() => {
-    const c = { all: rows.length, advancing: 0, pushed: 0, cut: 0, out: 0 };
+    const c = { all: rows.length, advancing: 0, pushed: 0, cut: 0, out: 0, makeup: 0 };
     rows.forEach((r) => {
+      if (r.is_makeup) c.makeup += 1;
       if (r.advanced) c.advancing += 1;
       if (r.state === 'pushed') c.pushed += 1;
       if (r.state === 'cut') c.cut += 1;
@@ -43,9 +48,10 @@ export default function SortableResults({ results, released, byScores, canPush, 
       : filter === 'advancing' ? r.advanced
       : filter === 'pushed' ? r.state === 'pushed'
       : filter === 'cut' ? r.state === 'cut'
+      : filter === 'makeup' ? r.is_makeup
       : !r.advanced
     );
-    const resultOrder = { advanced: 0, pushed: 1, cut: 2, out: 3 };
+    const resultOrder = { advanced: 0, pushed: 1, 'makeup-in': 2, cut: 3, 'makeup-out': 4, out: 5 };
     const val = {
       rank: (r) => r.rank,
       name: (r) => r.full_name.toLowerCase(),
@@ -82,6 +88,7 @@ export default function SortableResults({ results, released, byScores, canPush, 
         ['advancing', 'Advancing'],
         ['pushed', byScores ? 'Pushed through' : 'Hard vouch'],
         ['cut', 'Cut'],
+        ...(rows.some((r) => r.is_makeup) ? [['makeup', 'Makeups']] : []),
         ['out', 'Not advancing'],
       ]
     : [];
@@ -129,6 +136,9 @@ export default function SortableResults({ results, released, byScores, canPush, 
                 {released && <td>{r.label}</td>}
                 {canPush && (
                   <td>
+                    {r.is_makeup ? (
+                      <span className="muted row-note">Change in Makeup coffee chats above</span>
+                    ) : (
                     <span className="row-actions">
                       <PushAfterReleaseButton
                         roundId={roundId}
@@ -139,6 +149,7 @@ export default function SortableResults({ results, released, byScores, canPush, 
                       />
                       {isCoffee && <MoveToMakeupButton roundId={roundId} applicantId={r.applicant_id} name={r.full_name} />}
                     </span>
+                    )}
                   </td>
                 )}
               </tr>

@@ -246,7 +246,8 @@ function ResultsTable({ results, cutoff, released, hidden, byScores, canPush, ro
       <p className="muted panel-sub">{byScores ? 'Cut line' : 'Cutoff'} applied: {fmt(cutoff)}. Advancing applicants have moved to the next round.</p>
       {released && (() => {
         const adv = results.filter((r) => r.advanced);
-        const pushed = adv.filter((r) => r.by_vouch).length;
+        const pushed = adv.filter((r) => r.by_vouch && !r.is_makeup).length;
+        const makeupAdv = adv.filter((r) => r.is_makeup).length;
         const cut = results.filter((r) => !r.advanced && cutIds.has(r.applicant_id)).length;
         const out = results.length - adv.length;
         return (
@@ -259,7 +260,8 @@ function ResultsTable({ results, cutoff, released, hidden, byScores, canPush, ro
               </span>
             </div>
             <div className="tally-parts">
-              <span><strong>{adv.length - pushed}</strong> at or above the line</span>
+              <span><strong>{adv.length - pushed - makeupAdv}</strong> at or above the line</span>
+              {results.some((r) => r.is_makeup) && <span><strong>{makeupAdv}</strong> from makeups</span>}
               <span><strong>{pushed}</strong> {byScores ? 'pushed through' : 'by hard vouch'}</span>
               <span><strong>{cut}</strong> cut by hand</span>
               <span><strong>{out}</strong> not advancing</span>
