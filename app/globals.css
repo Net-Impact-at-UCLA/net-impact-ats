@@ -756,3 +756,4 @@ th.num .th-sort { justify-content: flex-end; width: 100%; }
 .btn-makeup:hover { background: #f6f4fd; }
 .chat-section-notes { display: inline-block; margin-top: 4px; font-size: 13px; color: var(--evergreen-deep); }
 .row .makeup-pill, .applicant-row .makeup-pill, li .makeup-pill { align-self: flex-start; width: fit-content; margin-left: 0; margin-top: 2px; }
+.makeup-pill { width: fit-content; align-self: flex-start; flex: 0 0 auto; }
