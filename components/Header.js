@@ -20,7 +20,7 @@ export default async function Header({ member, cycleName }) {
         .select('applicant_id, rounds!inner(stage, phase, cycles!inner(is_active))')
         .eq('makeup', true)
         .is('advanced', null)
-        .eq('rounds.stage', 'coffee_chat')
+        .neq('rounds.stage', 'application')
         .eq('rounds.cycles.is_active', true)
         .in('rounds.phase', ['voting', 'closed', 'released'])
         .limit(1);

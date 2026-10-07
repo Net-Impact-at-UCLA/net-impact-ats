@@ -42,7 +42,7 @@ export default async function RoundPage({ params }) {
   const byScores = round.decide_by === 'scores';
   // Makeup coffee chats (admins)
   let makeupRows = [];
-  if (isAdmin && round.stage === 'coffee_chat') {
+  if (isAdmin && round.stage !== 'application') {
     const mk = await fetchAll(() => supabase.from('round_applicants').select('*, applicants(full_name)').eq('round_id', id).eq('makeup', true).order('applicant_id'));
     if (mk.length) {
       const { data: cr } = await supabase.from('criteria').select('id').eq('round_id', id);
@@ -193,13 +193,13 @@ export default async function RoundPage({ params }) {
         )}
 
         {makeupRows.length > 0 && (
-          <MakeupDecisions roundId={round.id} rows={makeupRows} released={round.phase === 'released'} nextRoundName={nextRound?.name} />
+          <MakeupDecisions roundId={round.id} roundName={round.name} rows={makeupRows} released={round.phase === 'released'} nextRoundName={nextRound?.name} />
         )}
 
         {showResults && results.length > 0 && !(byScores && round.phase !== 'released') && (
           <ResultsTable
             cutIds={cutIds}
-            isCoffee={round.stage === 'coffee_chat'}
+            isCoffee={round.stage !== 'application'}
             byScores={byScores}
             canPush={isAdmin && round.phase === 'released'}
             roundId={round.id}

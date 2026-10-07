@@ -43,9 +43,9 @@ export default async function Home({ searchParams }) {
   const roundApplicants = roundIds.length
     ? await fetchAll(() => supabase.from('round_applicants').select('*').in('round_id', roundIds).order('round_id').order('applicant_id'))
     : [];
-  const coffeeRound = (rounds || []).find((r) => r.stage === 'coffee_chat');
-  const makeupPending = new Set(
-    roundApplicants.filter((x) => coffeeRound && x.round_id === coffeeRound.id && x.makeup && x.advanced == null).map((x) => x.applicant_id)
+  const roundName = Object.fromEntries((rounds || []).map((r) => [r.id, r.name]));
+  const makeupPending = new Map(
+    roundApplicants.filter((x) => x.makeup && x.advanced == null).map((x) => [x.applicant_id, roundName[x.round_id] || 'next round'])
   );
 
   // This member's review queue: assignments in rounds that are open for scoring
@@ -171,7 +171,7 @@ export default async function Home({ searchParams }) {
     ...a,
     headshotUrl: urls[a.headshot_path] || null,
     vouches: vouchCount[a.id] || 0,
-    makeup: makeupPending.has(a.id),
+    makeup: makeupPending.get(a.id) || null,
     reviews:
       member.role === 'admin'
         ? reviewCounts[`${a.currentRoundId}|${a.id}`] || { assigned: 0, done: 0, started: 0 }

@@ -8,7 +8,7 @@ import MoveToMakeupButton from './MoveToMakeupButton';
 
 // Admin: decide makeup coffee chats after the main cutoff.
 // rows: [{ id, name, avg, graders, advanced }]
-export default function MakeupDecisions({ roundId, rows, released, nextRoundName }) {
+export default function MakeupDecisions({ roundId, roundName = 'this round', rows, released, nextRoundName }) {
   const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
   const [busy, setBusy] = useState(null);
@@ -27,9 +27,9 @@ export default function MakeupDecisions({ roundId, rows, released, nextRoundName
 
   return (
     <section className="panel-lite">
-      <h2>Makeup coffee chats</h2>
+      <h2>{roundName} makeups</h2>
       <p className="muted panel-sub">
-        Held out of the vote and cutoff. Members grade them on My table after their makeup chat;{' '}
+        Held out of the vote and cutoff. Members grade them on My table after their makeup;{' '}
         {released ? 'decide each one here.' : 'you can decide them here once the main cutoff is applied.'}
       </p>
       {error && <p className="form-error">{error}</p>}
@@ -38,7 +38,7 @@ export default function MakeupDecisions({ roundId, rows, released, nextRoundName
           <thead>
             <tr>
               <th scope="col">Applicant</th>
-              <th scope="col" className="num">Avg coffee chat score</th>
+              <th scope="col" className="num">Avg score</th>
               <th scope="col" className="num">Graded by</th>
               <th scope="col">Status</th>
               {released && <th scope="col"><span className="sr-only">Decide</span></th>}

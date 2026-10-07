@@ -259,14 +259,19 @@ export default async function ApplicantPage({ params }) {
             })()}
 
             {(() => {
-              const coffee = (rounds || []).find((r) => r.stage === 'coffee_chat');
+              // the latest round after Application that this applicant is in
+              const coffee = [...(rounds || [])]
+                .filter((r) => r.stage !== 'application' && (roundApplicants || []).some((x) => x.round_id === r.id))
+                .sort((a, b) => a.sort_order - b.sort_order)
+                .pop();
               const ra = coffee && (roundApplicants || []).find((x) => x.round_id === coffee.id);
               if (!ra) return null;
               const pending = ra.makeup && ra.advanced == null;
-              if (!isAdmin) return pending ? <p className="makeup-note"><span className="makeup-pill">Makeup coffee chat</span> Held out of the vote and decided separately.</p> : null;
+              if (!isAdmin) return pending ? <p className="makeup-note"><span className="makeup-pill">Makeup: {coffee.name}</span> Held out of the vote and decided separately.</p> : null;
               if (ra.advanced != null && !ra.makeup) return null;
               return (
                 <MakeupToggle
+                  roundName={coffee.name}
                   roundId={coffee.id}
                   applicantId={id}
                   firstName={firstName}

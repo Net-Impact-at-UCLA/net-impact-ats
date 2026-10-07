@@ -137,7 +137,7 @@ export default function SortableResults({ results, released, byScores, canPush, 
                 {canPush && (
                   <td>
                     {r.is_makeup ? (
-                      <span className="muted row-note">Change in Makeup coffee chats above</span>
+                      <span className="muted row-note">Change in the makeups section above</span>
                     ) : (
                     <span className="row-actions">
                       <PushAfterReleaseButton

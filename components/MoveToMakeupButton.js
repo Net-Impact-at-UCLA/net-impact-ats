@@ -14,7 +14,7 @@ export default function MoveToMakeupButton({ roundId, applicantId, name, back = 
   async function run() {
     const msg = back
       ? `Return ${name} to the main results? They'll be decided by the applied cutoff, using the votes already cast.`
-      : `Move ${name} to makeups?\n\nThey become undecided (taken back out of the next round if they'd advanced), can be graded on My table after their makeup chat, and are decided in the Makeup coffee chats section.`;
+      : `Move ${name} to makeups?\n\nThey become undecided (taken back out of the next round if they'd advanced), can be graded on My table after their makeup, and are decided in the makeups section on this page.`;
     if (!window.confirm(msg)) return;
     setBusy(true);
     setError(null);

@@ -15,21 +15,22 @@ export default async function TablePage() {
     ? await supabase.from('rounds').select('*').eq('cycle_id', cycle.id).order('sort_order')
     : { data: [] };
   const isSelf = (r) => (r.self_select ?? r.stage === 'coffee_chat');
-  // The latest self-pick round with scoring open; otherwise Coffee Chats (for makeups)
-  const round =
-    [...(allRounds || [])].filter((r) => isSelf(r) && r.phase === 'scoring').pop() ||
-    (allRounds || []).find((r) => r.stage === 'coffee_chat') ||
-    null;
-
-  // After scoring closes, the table stays open for makeup coffee chats only
+  // The latest self-pick round with scoring open; otherwise the latest self-pick round with pending makeups
+  const scoringRound = [...(allRounds || [])].filter((r) => isSelf(r) && r.phase === 'scoring').pop() || null;
+  let round = scoringRound;
   let makeupIds = null;
-  if (round && round.stage === 'coffee_chat' && ['voting', 'closed', 'released'].includes(round.phase)) {
-    const { data: mk } = await supabase.from('round_applicants').select('*').eq('round_id', round.id).eq('makeup', true);
-    makeupIds = new Set((mk || []).filter((x) => x.advanced == null).map((x) => x.applicant_id));
+  if (!round) {
+    const later = (allRounds || []).filter((r) => isSelf(r) && r.stage !== 'application' && ['voting', 'closed', 'released'].includes(r.phase));
+    if (later.length) {
+      const { data: mk } = await supabase.from('round_applicants').select('*').in('round_id', later.map((r) => r.id)).eq('makeup', true).is('advanced', null);
+      const withMakeups = later.filter((r) => (mk || []).some((x) => x.round_id === r.id));
+      round = withMakeups.pop() || null;
+      if (round) makeupIds = new Set((mk || []).filter((x) => x.round_id === round.id).map((x) => x.applicant_id));
+    }
   }
   const makeupsOnly = makeupIds != null;
 
-  if (!round || (round.phase !== 'scoring' && !(makeupsOnly && makeupIds.size))) {
+  if (!round) {
     return (
       <>
         <Header member={member} cycleName={cycle?.name} />
@@ -88,7 +89,7 @@ export default async function TablePage() {
       <main className="page table-page">
         {makeupsOnly && (
           <p className="makeup-banner">
-            <span className="makeup-pill">Makeup coffee chats</span> Regular scoring is closed. Only applicants doing a makeup chat can be added and graded here.
+            <span className="makeup-pill">Makeups: {round.name}</span> Regular scoring is closed. Only applicants doing a makeup can be added and graded here.
           </p>
         )}
         <TableBoard round={round} criteria={criteria || []} applicants={applicants} initialEntries={entries} memberId={member.id} />
